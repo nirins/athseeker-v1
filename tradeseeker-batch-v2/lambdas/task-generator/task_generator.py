@@ -170,21 +170,208 @@ class TaskGenerator:
             all_symbols = response.json()
             logger.info(f"Fetched {len(all_symbols)} total symbols for {market_code}")
             
+            # Log symbol type distribution for debugging
+            if market_code == 'US':
+                type_counts = {}
+                exchange_counts = {}
+                sample_symbols = []
+                
+                # Analyze all symbols to understand the data structure
+                for symbol in all_symbols:
+                    symbol_type = symbol.get('Type', 'Unknown')
+                    exchange = symbol.get('Exchange', 'Unknown')
+                    type_counts[symbol_type] = type_counts.get(symbol_type, 0) + 1
+                    exchange_counts[exchange] = exchange_counts.get(exchange, 0) + 1
+                
+                # Sample first 20 symbols for inspection
+                for i, symbol in enumerate(all_symbols[:20]):
+                    sample_symbols.append({
+                        'Code': symbol.get('Code', 'N/A'),
+                        'Name': symbol.get('Name', 'N/A'),
+                        'Type': symbol.get('Type', 'N/A'),
+                        'Exchange': symbol.get('Exchange', 'N/A')
+                    })
+                
+                logger.info(f"US Market - Total symbols: {len(all_symbols)}")
+                logger.info(f"US Market symbol types: {dict(sorted(type_counts.items(), key=lambda x: x[1], reverse=True))}")
+                logger.info(f"US Market exchanges: {dict(sorted(exchange_counts.items(), key=lambda x: x[1], reverse=True))}")
+                logger.info(f"Sample symbols: {sample_symbols}")
+            
             # Determine filter type based on market code
             if market_code == 'CC':
                 # For crypto market, filter for Currency type
                 target_type = 'Currency'
+            elif market_code == 'US':
+                # For US market, be more specific about what we want
+                # Let's see what types actually exist first
+                target_types = ['Common Stock']
             else:
-                # For stock markets (US, BK, etc.), filter for Common Stock only
-                target_type = 'Common Stock'
+                # For other stock markets, filter for Common Stock only
+                target_types = ['Common Stock']
             
-            # Apply filter
-            filtered_symbols = [
-                s for s in all_symbols 
-                if s.get('Type') == target_type
-            ]
+            # Apply filter based on market code
+            if market_code == 'CC':
+                # For crypto market, filter for Currency type
+                filtered_symbols = [
+                    s for s in all_symbols 
+                    if s.get('Type') == 'Currency'
+                ]
+            elif market_code == 'US':
+                # For US market, apply comprehensive common stock filtering
+                filtered_symbols = []
+                filter_stats = {
+                    'total': len(all_symbols),
+                    'wrong_type': 0,
+                    'special_chars': 0,
+                    'too_long': 0,
+                    'too_short': 0,
+                    'derivative_suffix': 0,
+                    'excluded_keywords': 0,
+                    'has_numbers': 0,
+                    'wrong_exchange': 0,
+                    'otc_pink_sheets': 0,
+                    'passed_all': 0
+                }
+                
+                for symbol in all_symbols:
+                    code = symbol.get('Code', '')
+                    name = symbol.get('Name', '')
+                    symbol_type = symbol.get('Type', '')
+                    exchange = symbol.get('Exchange', '')
+                    
+                    # Primary filter: Must be Common Stock type
+                    if symbol_type != 'Common Stock':
+                        filter_stats['wrong_type'] += 1
+                        continue
+                    
+                    # Filter out symbols with special characters (warrants, rights, etc.)
+                    if any(char in code for char in ['.', '-', '/', '^', '~', '+', '=']):
+                        filter_stats['special_chars'] += 1
+                        continue
+                    
+                    # Filter out symbols that are too long (usually derivatives) or too short
+                    if len(code) > 5:
+                        filter_stats['too_long'] += 1
+                        continue
+                    
+                    if len(code) < 1:
+                        filter_stats['too_short'] += 1
+                        continue
+                    
+                    # Filter out symbols ending with common suffixes for derivatives/special securities
+                    derivative_suffixes = [
+                        'W', 'WS', 'WT', 'WD', 'WI', 'WR',  # Warrants
+                        'R', 'RT', 'RD',  # Rights
+                        'U', 'UN',  # Units
+                        'V',  # When-issued
+                        'P', 'PR', 'PRA', 'PRB', 'PRC', 'PRD', 'PRE', 'PRF', 'PRG', 'PRH', 'PRI', 'PRJ',  # Preferred
+                        'A', 'B', 'C', 'D', 'E', 'F'  # Class shares (but be careful, some legit stocks end with these)
+                    ]
+                    
+                    # Only filter class shares if they're clearly derivatives (length > 4 or have other indicators)
+                    if code.endswith(tuple(['W', 'WS', 'WT', 'WD', 'WI', 'WR', 'R', 'RT', 'RD', 'U', 'UN', 'V'] + 
+                                          [f'PR{x}' for x in 'ABCDEFGHIJ'])):
+                        filter_stats['derivative_suffix'] += 1
+                        continue
+                    
+                    # Be more careful with single letter suffixes - only filter if combined with other indicators
+                    if len(code) > 4 and code[-1] in 'ABCDEF' and any(keyword in name.lower() for keyword in ['class', 'series']):
+                        filter_stats['derivative_suffix'] += 1
+                        continue
+                    
+                    # Filter out symbols that are clearly ETFs, REITs, or funds by name
+                    name_lower = name.lower()
+                    excluded_keywords = [
+                        'etf', 'fund', 'trust', 'reit', 'index', 'spdr', 'ishares', 
+                        'vanguard', 'invesco', 'proshares', 'direxion', 'leveraged',
+                        'inverse', '2x', '3x', 'ultra', 'bear', 'bull', 'volatility',
+                        'treasury', 'bond', 'note', 'municipal', 'corporate bond',
+                        'commodity', 'futures', 'option', 'warrant', 'right',
+                        'depositary receipt', 'adr', 'gdr', 'preferred stock'
+                    ]
+                    
+                    if any(keyword in name_lower for keyword in excluded_keywords):
+                        filter_stats['excluded_keywords'] += 1
+                        continue
+                    
+                    # Filter out symbols with numbers (often special classes or derivatives)
+                    # But allow some exceptions for legitimate companies
+                    if any(char.isdigit() for char in code):
+                        # Allow certain patterns that might be legitimate
+                        if not (len(code) <= 4 and code[-1].isdigit() and code[:-1].isalpha()):
+                            filter_stats['has_numbers'] += 1
+                            continue
+                    
+                    # Filter by exchange - be more inclusive but exclude OTC/Pink Sheets
+                    excluded_exchanges = [
+                        'OTCBB', 'OTC', 'PINK', 'GREY', 'OTCQB', 'OTCQX', 'OTCPK',
+                        'BATS', 'IEX'  # These might be legitimate but often have fewer listings
+                    ]
+                    
+                    if exchange in excluded_exchanges:
+                        filter_stats['otc_pink_sheets'] += 1
+                        continue
+                    
+                    # Include major exchanges and some others
+                    major_exchanges = [
+                        'NASDAQ', 'NYSE', 'AMEX', 'NYSE MKT', 'NYSE American', 
+                        'NYSE ARCA', 'NASDAQ Global Market', 'NASDAQ Global Select Market',
+                        'NASDAQ Capital Market', 'New York Stock Exchange'
+                    ]
+                    
+                    # If exchange is not in major exchanges but also not in excluded, still include it
+                    # This handles cases where exchange names might be slightly different
+                    if exchange not in major_exchanges and exchange not in excluded_exchanges:
+                        # Check if it contains keywords that suggest it's a major exchange
+                        exchange_lower = exchange.lower()
+                        if not any(keyword in exchange_lower for keyword in ['nasdaq', 'nyse', 'amex', 'american']):
+                            filter_stats['wrong_exchange'] += 1
+                            continue
+                    
+                    # If it passes all filters, it's likely a common stock
+                    filter_stats['passed_all'] += 1
+                    filtered_symbols.append(symbol)
+                
+                # Log detailed filtering results
+                logger.info(f"US Market filtering results:")
+                for key, value in filter_stats.items():
+                    percentage = (value / filter_stats['total']) * 100 if filter_stats['total'] > 0 else 0
+                    logger.info(f"  {key}: {value} ({percentage:.1f}%)")
+                
+                # Log some examples of what passed and what didn't
+                logger.info(f"Sample symbols that passed all filters:")
+                for symbol in filtered_symbols[:10]:
+                    logger.info(f"  {symbol.get('Code')} - {symbol.get('Name')} ({symbol.get('Exchange')})")
+                
+                if filter_stats['wrong_type'] > 0:
+                    # Show what types were filtered out
+                    wrong_type_samples = [s for s in all_symbols if s.get('Type') != 'Common Stock'][:5]
+                    logger.info(f"Sample non-Common Stock types filtered out:")
+                    for symbol in wrong_type_samples:
+                        logger.info(f"  {symbol.get('Code')} - {symbol.get('Type')} - {symbol.get('Name')}")
+                    
+            else:
+                # For other stock markets, filter for Common Stock only
+                filtered_symbols = [
+                    s for s in all_symbols 
+                    if s.get('Type') == 'Common Stock'
+                ]
             
-            logger.info(f"Filtered to {len(filtered_symbols)} symbols from {len(all_symbols)} total (Type='{target_type}')")
+            logger.info(f"After comprehensive filtering: {len(filtered_symbols)} symbols from {len(all_symbols)} total")
+            
+            # Log filtering results for all markets
+            logger.info(f"{market_code} Market filtering results:")
+            logger.info(f"  - Total symbols from EODHD: {len(all_symbols)}")
+            logger.info(f"  - After all filters: {len(filtered_symbols)}")
+            logger.info(f"  - Reduction: {len(all_symbols) - len(filtered_symbols)} symbols filtered out")
+            logger.info(f"  - Retention rate: {(len(filtered_symbols) / len(all_symbols) * 100):.1f}%")
+            
+            # Log some examples of what made it through for all markets
+            if len(filtered_symbols) > 0:
+                sample_final = filtered_symbols[:5]
+                logger.info(f"Sample final symbols: {[s.get('Code') for s in sample_final]}")
+            else:
+                logger.warning(f"No symbols passed filtering for market {market_code}!")
             
             return filtered_symbols
             
