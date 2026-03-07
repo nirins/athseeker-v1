@@ -48,6 +48,7 @@ resource "aws_lambda_function" "downloader" {
       ENVIRONMENT         = local.environment
       S3_BUCKET_NAME      = aws_s3_bucket.stock_prices.id
       DYNAMODB_TABLE_NAME = aws_dynamodb_table.stock_prices.name
+      MAX_DAILY_VOLATILITY = var.max_daily_volatility
     }
   }
 

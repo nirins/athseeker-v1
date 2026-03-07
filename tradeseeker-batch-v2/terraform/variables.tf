@@ -51,3 +51,9 @@ variable "schedule_enabled" {
   type        = bool
   default     = false # Disabled by default
 }
+
+variable "max_daily_volatility" {
+  description = "Maximum allowed daily volatility percentage for ATH detection"
+  type        = number
+  default     = 50.0  # 50% threshold to filter out highly volatile stocks
+}

@@ -41,6 +41,21 @@ class ATHDetector:
             if not price_data or len(price_data) < 2:
                 return None
             
+            # Pre-filter: Check if stock has excessive volatility in entire history (360 days)
+            # If ANY day in the full price history exceeds volatility threshold, reject the entire stock
+            # This ensures we only get consistently stable stocks
+            recent_data = price_data  # Check all available data (up to 360 days)
+            
+            for record in recent_data:
+                high_price = float(record['high'])
+                low_price = float(record['low'])
+                
+                if low_price > 0:  # Avoid division by zero
+                    daily_volatility = ((high_price - low_price) / low_price) * 100
+                    if daily_volatility > self.max_daily_volatility:
+                        logger.info(f"Rejecting {symbol} entirely due to excessive volatility on {record['date']}: {daily_volatility:.1f}% (max: {self.max_daily_volatility}%) - checking full 360-day history")
+                        return None
+            
             # Track running maximum and minimum as we iterate
             running_max = 0.0
             running_min = float('inf')
@@ -49,15 +64,6 @@ class ATHDetector:
             # Check each record to see if it's an ATH when it occurred
             for i, record in enumerate(price_data):
                 current_price = float(record['close'])
-                high_price = float(record['high'])
-                low_price = float(record['low'])
-                
-                # Filter out stocks with excessive daily volatility
-                if low_price > 0:  # Avoid division by zero
-                    daily_volatility = ((high_price - low_price) / low_price) * 100
-                    if daily_volatility > self.max_daily_volatility:
-                        logger.info(f"Filtering out {symbol} on {record['date']} due to excessive volatility: {daily_volatility:.1f}% (max: {self.max_daily_volatility}%)")
-                        continue
                 
                 # Skip first record (no history to compare against)
                 if i == 0:

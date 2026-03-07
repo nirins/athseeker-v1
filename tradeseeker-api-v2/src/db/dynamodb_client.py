@@ -45,7 +45,7 @@ class DynamoDBClient:
         )
         self.ath_stocks_table_name = os.environ.get(
             'ATH_STOCKS_TABLE',
-            'therets-batch-v2-dev-ath'
+            'ts-batch-v2-dev-ath'
         )
         
         # GSI names from environment variables
