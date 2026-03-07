@@ -1,6 +1,6 @@
 # Makefile for TradeSeeker Batch Processing System
 
-.PHONY: help package deploy deploy-downloader deploy-all clean
+.PHONY: help package deploy deploy-downloader deploy-all clean ath-info ath-clear ath-recreate
 
 # Default target
 help:
@@ -10,6 +10,11 @@ help:
 	@echo "  package            - Package all lambda functions"
 	@echo "  deploy             - Deploy infrastructure with terraform"
 	@echo "  clean              - Clean build artifacts"
+	@echo ""
+	@echo "ATH Table Management:"
+	@echo "  ath-info           - Show ATH table information"
+	@echo "  ath-clear          - Clear all ATH records (keep table structure)"
+	@echo "  ath-recreate       - Delete and recreate ATH table"
 
 # Package and deploy downloader lambda (most common use case)
 deploy-downloader:
@@ -50,3 +55,16 @@ clean:
 
 # Quick deploy (alias for deploy-downloader)
 quick: deploy-downloader
+
+# ATH Table Management
+ath-info:
+	@echo "📋 Showing ATH table information..."
+	@cd scripts && python3 clear_ath_table.py info
+
+ath-clear:
+	@echo "🧹 Clearing ATH table records..."
+	@cd scripts && python3 clear_ath_table.py clear
+
+ath-recreate:
+	@echo "🔨 Recreating ATH table..."
+	@cd scripts && python3 clear_ath_table.py recreate

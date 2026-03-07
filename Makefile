@@ -24,6 +24,11 @@ help:
 	@echo "  make model-test [MODEL=<name>] - Test model with sample data"
 	@echo "  make model-config  - Show model configuration"
 	@echo ""
+	@echo "ATH table management:"
+	@echo "  make ath-info      - Show ATH table information"
+	@echo "  make ath-clear     - Clear all ATH records (keep table structure)"
+	@echo "  make ath-recreate  - Delete and recreate ATH table"
+	@echo ""
 	@echo "Individual operations:"
 	@echo "  make deploy-all - Deploy all components"
 	@echo "  make test       - Run tests for all components"
@@ -195,3 +200,16 @@ train: train-check train-install train-analyze train-apply
 	@echo "   1. Review the calibration report: tradeseeker-batch-v2/scripts/beauty_model_calibration_report.json"
 	@echo "   2. If weights were updated, deploy the changes: make batch"
 	@echo "   3. Monitor beauty score performance with new model"
+
+# ATH Table Management (delegate to batch project)
+ath-info:
+	@echo "📋 Showing ATH table information..."
+	@cd tradeseeker-batch-v2 && $(MAKE) ath-info
+
+ath-clear:
+	@echo "🧹 Clearing ATH table records..."
+	@cd tradeseeker-batch-v2 && $(MAKE) ath-clear
+
+ath-recreate:
+	@echo "🔨 Recreating ATH table..."
+	@cd tradeseeker-batch-v2 && $(MAKE) ath-recreate
