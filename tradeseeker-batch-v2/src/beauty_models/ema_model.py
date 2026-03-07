@@ -20,12 +20,12 @@ class EMABeautyModel(BaseBeautyModel):
         
         # Component weights for EMA-based scoring
         self.weights = {
-            'ema_alignment': 0.30,          # 30% - EMA hierarchy alignment (7>30>50>200) - reduced from 40%
-            'ema_separation': 0.15,         # 15% - Distance between EMAs
-            'ema_momentum': 0.10,           # 10% - EMA slope/momentum
-            'price_vs_emas': 0.25,          # 25% - Price position relative to EMAs - reduced from 30%
-            'ema_convergence': 0.05,        # 5% - EMA convergence/divergence patterns
-            'price_above_ema50': 0.15       # 15% - Price above EMA 50 over 6 months (new weighted component)
+            'price_above_ema50': 0.35,      # 35% - Price above EMA 50 over 6 months (highest priority)
+            'price_vs_emas': 0.30,          # 30% - Price position relative to EMAs (second priority)
+            'ema_alignment': 0.20,          # 20% - EMA hierarchy alignment (7>30>50>200) (third priority)
+            'ema_separation': 0.10,         # 10% - Distance between EMAs (reduced from 15%)
+            'ema_momentum': 0.05,           # 5% - EMA slope/momentum (reduced from 10%)
+            'ema_convergence': 0.00         # 0% - EMA convergence/divergence patterns (removed)
         }
     
     def calculate_beauty_score(self, pre_breakout: List[Dict], breakout_day: Dict, 
@@ -138,15 +138,15 @@ class EMABeautyModel(BaseBeautyModel):
             'created_date': '2024-03-07',
             'is_trainable': True,
             'features': [
-                'EMA hierarchy alignment (7>30>50>200) - weighted toward last 21 days (30%)',
-                'Price position vs EMAs - weighted toward last 21 days (25%)',
-                'Price above EMA 50 over 6 months - percentage-based scoring (15%)',
-                'EMA separation distances - weighted toward last 21 days (15%)',
-                'EMA slope momentum (10%)',
-                'EMA convergence patterns (5%)'
+                'Price above EMA 50 over 6 months - percentage-based scoring (35% - HIGHEST)',
+                'Price position vs EMAs - weighted toward last 21 days (30%)',
+                'EMA hierarchy alignment (7>30>50>200) - weighted toward last 21 days (20%)',
+                'EMA separation distances - weighted toward last 21 days (10%)',
+                'EMA slope momentum (5%)',
+                'EMA convergence patterns (0% - disabled)'
             ],
-            'weighting_strategy': 'Recent 21 days weighted more heavily (1.0x recent, 0.3x oldest). Price above EMA 50 uses 6-month percentage.',
-            'rationale': 'Price above EMAs is the most direct indicator of bullish momentum after EMA alignment. Price above EMA 50 over 6 months shows sustained medium-term strength.',
+            'weighting_strategy': 'Price above EMA 50 prioritized as most important indicator of sustained bullish trend. Price vs EMAs second for immediate position assessment.',
+            'rationale': 'Price above EMA 50 over 6 months is the strongest indicator of sustained medium-term bullish momentum. Current price vs EMAs shows immediate bullish positioning.',
             'filters': []
         }
     
