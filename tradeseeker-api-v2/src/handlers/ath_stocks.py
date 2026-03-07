@@ -66,13 +66,19 @@ def handle_ath_stocks(query_params: Dict[str, Any]) -> dict:
         # Apply in-memory filtering for min_gain
         filtered_results = _apply_filters(results, min_gain)
         
-        # Sort by beauty_score descending (highest beauty score first)
-        # Fall back to detection_date if beauty_score is missing
-        sorted_results = sorted(
-            filtered_results, 
-            key=lambda x: (x.get('beauty_score', 0), x.get('detection_date', '')), 
-            reverse=True
-        )
+        # Sort by beauty_score descending only if not already ordered by GSI
+        # The beauty_score GSI already returns results in correct order
+        if market and not date and not days:
+            # Results from beauty_score GSI are already ordered correctly
+            sorted_results = filtered_results
+        else:
+            # Sort by beauty_score descending (highest beauty score first)
+            # Fall back to detection_date if beauty_score is missing
+            sorted_results = sorted(
+                filtered_results, 
+                key=lambda x: (x.get('beauty_score', 0), x.get('detection_date', '')), 
+                reverse=True
+            )
         
         logger.info(
             f"Returning {len(sorted_results)} results "

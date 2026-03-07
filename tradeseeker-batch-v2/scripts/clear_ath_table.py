@@ -23,8 +23,8 @@ def clear_ath_table(recreate=False):
     
     if recreate:
         print("⚠️  RECREATE MODE: This will delete and recreate the entire table!")
-        confirm = input("Are you sure you want to recreate the table? (type 'RECREATE' to confirm): ")
-        if confirm != 'RECREATE':
+        confirm = input("Are you sure you want to recreate the table? (type 'yes' to confirm): ")
+        if confirm != 'yes':
             print("❌ Operation cancelled.")
             return
         

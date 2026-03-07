@@ -1,6 +1,7 @@
 # Stock Downloader implementation
 
 import json
+import os
 import boto3
 from typing import Dict, List, Any
 from datetime import datetime, timedelta
@@ -39,11 +40,13 @@ class StockDownloader:
         self.ssm = boto3.client('ssm')
         self.secretsmanager = boto3.client('secretsmanager')
         
-        # Initialize specialized modules
+        # Initialize specialized modules with configurable volatility filter
+        max_daily_volatility = float(os.environ.get('MAX_DAILY_VOLATILITY', '100.0'))
+        
         self.api_client = EODHDClient(self.ssm, self.secretsmanager, environment)
         self.storage = StorageManager(environment, s3_bucket, dynamodb_table, self.s3, self.dynamodb)
         self.cross_detector = CrossDetector(environment)
-        self.ath_detector = ATHDetector(environment)
+        self.ath_detector = ATHDetector(environment, max_daily_volatility)
         self.breakout_analyzer = BreakoutAnalyzer()
     
     def process_task(self, record: Dict[str, Any]):

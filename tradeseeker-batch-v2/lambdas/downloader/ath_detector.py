@@ -13,14 +13,16 @@ logger = logging.getLogger()
 class ATHDetector:
     """Handles ATH detection for all stocks"""
     
-    def __init__(self, environment: str):
+    def __init__(self, environment: str, max_daily_volatility: float = 100.0):
         """
         Initialize ATH Detector
         
         Args:
             environment: Environment name (dev, uat, prod)
+            max_daily_volatility: Maximum allowed daily volatility percentage (default: 100%)
         """
         self.environment = environment
+        self.max_daily_volatility = max_daily_volatility
     
     def check_ath_detection(self, symbol: str, market_code: str, price_data: List[Dict]) -> Dict:
         """
@@ -47,6 +49,15 @@ class ATHDetector:
             # Check each record to see if it's an ATH when it occurred
             for i, record in enumerate(price_data):
                 current_price = float(record['close'])
+                high_price = float(record['high'])
+                low_price = float(record['low'])
+                
+                # Filter out stocks with excessive daily volatility
+                if low_price > 0:  # Avoid division by zero
+                    daily_volatility = ((high_price - low_price) / low_price) * 100
+                    if daily_volatility > self.max_daily_volatility:
+                        logger.info(f"Filtering out {symbol} on {record['date']} due to excessive volatility: {daily_volatility:.1f}% (max: {self.max_daily_volatility}%)")
+                        continue
                 
                 # Skip first record (no history to compare against)
                 if i == 0:

@@ -200,6 +200,7 @@ train: train-check train-install train-analyze train-apply
 	@echo "   1. Review the calibration report: tradeseeker-batch-v2/scripts/beauty_model_calibration_report.json"
 	@echo "   2. If weights were updated, deploy the changes: make batch"
 	@echo "   3. Monitor beauty score performance with new model"
+	@echo "   4. Review volatility filtering: tradeseeker-batch-v2/VOLATILITY_FILTERING.md"
 
 # ATH Table Management (delegate to batch project)
 ath-info:
