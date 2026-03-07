@@ -61,17 +61,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   showGradePopup = false;
   selectedStockForGrading: StockData | null = null;
   availableGrades = [
-    { value: 'A+', label: 'A+ (90-100) - Exceptional' },
-    { value: 'A', label: 'A (85-89) - Excellent' },
-    { value: 'A-', label: 'A- (80-84) - Very Good' },
-    { value: 'B+', label: 'B+ (75-79) - Good' },
-    { value: 'B', label: 'B (70-74) - Above Average' },
-    { value: 'B-', label: 'B- (65-69) - Decent' },
-    { value: 'C+', label: 'C+ (60-64) - Average' },
-    { value: 'C', label: 'C (55-59) - Below Average' },
-    { value: 'C-', label: 'C- (50-54) - Poor' },
-    { value: 'D', label: 'D (40-49) - Very Poor' },
-    { value: 'F', label: 'F (0-39) - Failed' }
+    { value: 'A', label: 'A - Excellent' },
+    { value: 'B', label: 'B - Good' },
+    { value: 'C', label: 'C - Average' },
+    { value: 'D', label: 'D - Poor' },
+    { value: 'F', label: 'F - Failed' }
   ];
 
   constructor(private apiService: ApiService) {}
@@ -473,15 +467,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   getGradeClass(gradeValue: string): string {
     const gradeClasses: {[key: string]: string} = {
-      'A+': 'grade-a-plus',
       'A': 'grade-a',
-      'A-': 'grade-a-minus',
-      'B+': 'grade-b-plus',
       'B': 'grade-b',
-      'B-': 'grade-b-minus',
-      'C+': 'grade-c-plus',
       'C': 'grade-c',
-      'C-': 'grade-c-minus',
       'D': 'grade-d',
       'F': 'grade-f'
     };

@@ -239,25 +239,13 @@ class BreakoutAnalyzer:
     
     def _get_beauty_grade(self, score: float) -> str:
         """Convert numeric score to letter grade"""
-        if score >= 90:
-            return 'A+'
-        elif score >= 85:
+        if score >= 80:
             return 'A'
-        elif score >= 80:
-            return 'A-'
-        elif score >= 75:
-            return 'B+'
         elif score >= 70:
             return 'B'
-        elif score >= 65:
-            return 'B-'
         elif score >= 60:
-            return 'C+'
-        elif score >= 55:
             return 'C'
         elif score >= 50:
-            return 'C-'
-        elif score >= 40:
             return 'D'
         else:
             return 'F'
