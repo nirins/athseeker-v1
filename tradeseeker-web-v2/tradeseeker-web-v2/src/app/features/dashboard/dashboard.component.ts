@@ -138,7 +138,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
    * Load a page of stocks with fallback to client-side pagination
    */
   private loadStockPageWithFallback(): void {
-    this.apiService.getStrategyStocks(this.selectedStrategy, this.selectedMarket, this.PAGE_SIZE, this.currentOffset)
+    // For ATH strategy, fetch all data on first load since API doesn't support proper pagination
+    const shouldFetchAll = this.selectedStrategy === 'ath' && this.currentOffset === 0;
+    const requestLimit = shouldFetchAll ? 100 : this.PAGE_SIZE; // Use max allowed limit (100) to get ATH data
+    
+    this.apiService.getStrategyStocks(this.selectedStrategy, this.selectedMarket, requestLimit, this.currentOffset)
       .pipe(
         switchMap(response => {
           console.log(`${this.selectedStrategy} API response (offset: ${this.currentOffset}):`, response);
@@ -158,41 +162,82 @@ export class DashboardComponent implements OnInit, OnDestroy {
           // Extract symbols from the data array
           const symbols = response.data.map(item => item.symbol);
 
-          // Check if backend supports pagination
-          const backendSupportsPagination = this.currentOffset > 0 || symbols.length <= this.PAGE_SIZE;
-
-          if (backendSupportsPagination) {
-            // Backend supports pagination - use server-side pagination
-            console.log('Using server-side pagination');
-            this.hasMoreData = symbols.length === this.PAGE_SIZE;
-
+          // For ATH strategy, always use client-side pagination since API doesn't support proper offset
+          if (this.selectedStrategy === 'ath') {
+            console.log('Using client-side pagination for ATH strategy, total symbols:', symbols.length);
+            
+            // Only update allSymbols on first load to avoid overwriting
             if (this.currentOffset === 0) {
-              this.goldenCrosses = symbols;
-              this.allSymbols = symbols;
-            } else {
-              this.goldenCrosses = [...this.goldenCrosses, ...symbols];
-              this.allSymbols = [...this.allSymbols, ...symbols];
+              // Ensure no duplicates in allSymbols
+              this.allSymbols = [...new Set(symbols)];
+              console.log(`ATH strategy: Set allSymbols to ${this.allSymbols.length} total symbols`);
             }
-          } else {
-            // Backend doesn't support pagination - use client-side pagination
-            console.log('Using client-side pagination, total symbols:', symbols.length);
-            this.allSymbols = symbols;
 
             // Calculate which symbols to show for current page
             const startIndex = this.currentOffset;
             const endIndex = startIndex + this.PAGE_SIZE;
-            const pageSymbols = symbols.slice(startIndex, endIndex);
+            const pageSymbols = this.allSymbols.slice(startIndex, endIndex);
 
-            this.hasMoreData = endIndex < symbols.length;
+            this.hasMoreData = endIndex < this.allSymbols.length;
+            console.log(`ATH pagination: showing ${startIndex}-${Math.min(endIndex, this.allSymbols.length)} of ${this.allSymbols.length}, hasMoreData: ${this.hasMoreData}`);
 
             if (this.currentOffset === 0) {
               this.goldenCrosses = pageSymbols;
             } else {
-              this.goldenCrosses = [...this.goldenCrosses, ...pageSymbols];
+              // Append new page symbols, avoiding duplicates
+              const newSymbols = pageSymbols.filter(symbol => !this.goldenCrosses.includes(symbol));
+              this.goldenCrosses = [...this.goldenCrosses, ...newSymbols];
             }
 
             // Use pageSymbols for fetching stock data
             symbols.splice(0, symbols.length, ...pageSymbols);
+          } else {
+            // For other strategies, check if backend supports pagination
+            const backendSupportsPagination = this.currentOffset > 0 || symbols.length <= this.PAGE_SIZE;
+
+            if (backendSupportsPagination) {
+              // Backend supports pagination - use server-side pagination
+              console.log('Using server-side pagination');
+              this.hasMoreData = symbols.length === this.PAGE_SIZE;
+
+              if (this.currentOffset === 0) {
+                // Ensure no duplicates in the initial load
+                this.goldenCrosses = [...new Set(symbols)];
+                this.allSymbols = [...new Set(symbols)];
+              } else {
+                // Append new symbols, avoiding duplicates
+                const newSymbols = symbols.filter(symbol => !this.allSymbols.includes(symbol));
+                this.goldenCrosses = [...this.goldenCrosses, ...newSymbols];
+                this.allSymbols = [...this.allSymbols, ...newSymbols];
+              }
+            } else {
+              // Backend doesn't support pagination - use client-side pagination
+              console.log('Using client-side pagination, total symbols:', symbols.length);
+              
+              // Only update allSymbols on first load to avoid overwriting
+              if (this.currentOffset === 0) {
+                // Ensure no duplicates in allSymbols
+                this.allSymbols = [...new Set(symbols)];
+              }
+
+              // Calculate which symbols to show for current page
+              const startIndex = this.currentOffset;
+              const endIndex = startIndex + this.PAGE_SIZE;
+              const pageSymbols = this.allSymbols.slice(startIndex, endIndex);
+
+              this.hasMoreData = endIndex < this.allSymbols.length;
+
+              if (this.currentOffset === 0) {
+                this.goldenCrosses = pageSymbols;
+              } else {
+                // Append new page symbols, avoiding duplicates
+                const newSymbols = pageSymbols.filter(symbol => !this.goldenCrosses.includes(symbol));
+                this.goldenCrosses = [...this.goldenCrosses, ...newSymbols];
+              }
+
+              // Use pageSymbols for fetching stock data
+              symbols.splice(0, symbols.length, ...pageSymbols);
+            }
           }
 
           if (symbols.length === 0) {
@@ -229,11 +274,24 @@ export class DashboardComponent implements OnInit, OnDestroy {
    */
   loadMore(): void {
     if (this.isLoadingMore || !this.hasMoreData) {
-      console.log('Load more blocked:', { isLoadingMore: this.isLoadingMore, hasMoreData: this.hasMoreData });
+      console.log('Load more blocked:', { 
+        isLoadingMore: this.isLoadingMore, 
+        hasMoreData: this.hasMoreData,
+        currentOffset: this.currentOffset,
+        allSymbolsLength: this.allSymbols.length,
+        stockDataArrayLength: this.stockDataArray.length
+      });
       return;
     }
 
-    console.log('Loading more stocks, current offset:', this.currentOffset);
+    console.log('Loading more stocks:', {
+      currentOffset: this.currentOffset,
+      pageSize: this.PAGE_SIZE,
+      allSymbolsLength: this.allSymbols.length,
+      stockDataArrayLength: this.stockDataArray.length,
+      hasMoreData: this.hasMoreData
+    });
+    
     this.isLoadingMore = true;
     this.currentOffset += this.PAGE_SIZE;
     this.loadStockPageWithFallback();
@@ -243,7 +301,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
    * Fetch stock data asynchronously and add to array as they arrive
    */
   private fetchStockDataAsync(symbols: string[]): void {
-    symbols.forEach(symbol => {
+    // Deduplicate symbols before fetching
+    const uniqueSymbols = [...new Set(symbols)];
+    
+    uniqueSymbols.forEach(symbol => {
       this.apiService.getStockData(symbol).pipe(
         takeUntil(this.destroy$),
         catchError(error => {
@@ -253,9 +314,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
         })
       ).subscribe(stockData => {
         if (stockData) {
-          // Add to array as soon as data arrives
-          this.stockDataArray = [...this.stockDataArray, stockData];
-          console.log(`Added ${symbol} to chart grid (${this.stockDataArray.length}/${symbols.length})`);
+          // Check if this symbol already exists in stockDataArray to prevent duplicates
+          const existingIndex = this.stockDataArray.findIndex(data => data.symbol === stockData.symbol);
+          if (existingIndex === -1) {
+            // Add to array as soon as data arrives (only if not already present)
+            this.stockDataArray = [...this.stockDataArray, stockData];
+            console.log(`Added ${symbol} to chart grid (${this.stockDataArray.length}/${uniqueSymbols.length})`);
+          } else {
+            console.log(`Skipped duplicate ${symbol} - already in chart grid`);
+          }
         }
       });
     });

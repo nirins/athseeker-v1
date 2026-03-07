@@ -47,7 +47,7 @@ export class AthComponent implements OnInit, OnDestroy {
   loadATHStocks(): void {
     this.isLoading = true;
     
-    this.apiService.getATHStocks(this.selectedMarket, 30) // Last 30 days
+    this.apiService.getATHStocks(this.selectedMarket) // All ATH stocks (no date filter)
       .pipe(
         takeUntil(this.destroy$),
         finalize(() => this.isLoading = false)
@@ -56,6 +56,7 @@ export class AthComponent implements OnInit, OnDestroy {
         next: (response: ATHResponse) => {
           this.athStocks = response.data;
           console.log(`Loaded ${this.athStocks.length} ATH stocks for ${this.selectedMarket}`);
+          console.log('API Response timestamp:', new Date().toISOString());
         },
         error: (error) => {
           console.error('Error loading ATH stocks:', error);

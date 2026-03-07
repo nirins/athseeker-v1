@@ -65,6 +65,9 @@ export class ApiService {
         params.push(`offset=${offset}`);
       }
 
+      // Add cache-busting parameter
+      params.push(`_t=${Date.now()}`);
+
       if (params.length > 0) {
         url += `?${params.join('&')}`;
       }
