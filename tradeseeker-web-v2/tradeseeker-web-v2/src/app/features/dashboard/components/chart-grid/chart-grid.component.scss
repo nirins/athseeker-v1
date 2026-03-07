@@ -1,0 +1,33 @@
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 0.75rem;
+  padding: 0.5rem;
+  width: 100%;
+
+  // Responsive breakpoints for specific column counts
+  // Mobile: 1 column
+  @media (max-width: 767px) {
+    grid-template-columns: 1fr;
+  }
+
+  // Tablet: 2 columns
+  @media (min-width: 768px) and (max-width: 1439px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  // Laptop: 3 columns
+  @media (min-width: 1440px) and (max-width: 1919px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  // Desktop: 4-5 columns
+  @media (min-width: 1920px) and (max-width: 2559px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  // Large monitor (27"): 6 columns
+  @media (min-width: 2560px) {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}

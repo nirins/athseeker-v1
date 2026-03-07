@@ -1,0 +1,8 @@
+<div class="chart-grid">
+  <app-stock-chart
+    *ngFor="let stock of stockData"
+    [stockData]="stock"
+    [displayMode]="displayMode"
+    [chartType]="chartType">
+  </app-stock-chart>
+</div>

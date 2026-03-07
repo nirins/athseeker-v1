@@ -1,0 +1,190 @@
+<div class="login-container">
+  <div class="login-card">
+    <h1>ATHSeeker</h1>
+    <h2>{{ showConfirmation ? 'Confirm Your Account' : (isSignUpMode ? 'Create Account' : 'Sign In') }}</h2>
+
+    <!-- Toggle Buttons -->
+    <div class="mode-toggle">
+      <button 
+        type="button" 
+        class="toggle-btn" 
+        [class.active]="!isSignUpMode"
+        (click)="switchToLogin()"
+      >
+        Sign In
+      </button>
+      <button 
+        type="button" 
+        class="toggle-btn" 
+        [class.active]="isSignUpMode"
+        (click)="switchToSignUp()"
+      >
+        Sign Up
+      </button>
+    </div>
+
+    <!-- Login Form -->
+    <form *ngIf="!isSignUpMode && !showConfirmation" [formGroup]="loginForm" (ngSubmit)="onLogin()">
+      <div class="form-group">
+        <label for="username">Email</label>
+        <input
+          type="email"
+          id="username"
+          formControlName="username"
+          [class.invalid]="username?.invalid && username?.touched"
+          placeholder="Enter your email"
+        />
+        <div class="error-message" *ngIf="username?.invalid && username?.touched">
+          <span *ngIf="username?.errors?.['required']">Email is required</span>
+          <span *ngIf="username?.errors?.['email']">Please enter a valid email</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input
+          type="password"
+          id="password"
+          formControlName="password"
+          [class.invalid]="password?.invalid && password?.touched"
+          placeholder="Enter your password"
+        />
+        <div class="error-message" *ngIf="password?.invalid && password?.touched">
+          <span *ngIf="password?.errors?.['required']">Password is required</span>
+          <span *ngIf="password?.errors?.['minlength']">Password must be at least 6 characters</span>
+        </div>
+      </div>
+
+      <div class="error-message" *ngIf="error">
+        {{ error }}
+      </div>
+
+      <button
+        type="submit"
+        [disabled]="loginForm.invalid || isLoading"
+        class="submit-button"
+      >
+        <span *ngIf="!isLoading">Sign In</span>
+        <span *ngIf="isLoading">Signing In...</span>
+      </button>
+    </form>
+
+    <!-- Confirmation Form -->
+    <form *ngIf="showConfirmation" [formGroup]="confirmationForm" (ngSubmit)="onConfirmAccount()">
+      <div class="form-group">
+        <label for="confirmationCode">Confirmation Code</label>
+        <input
+          type="text"
+          id="confirmationCode"
+          formControlName="confirmationCode"
+          [class.invalid]="confirmationCode?.invalid && confirmationCode?.touched"
+          placeholder="Enter 6-digit code from email"
+          maxlength="6"
+        />
+        <div class="error-message" *ngIf="confirmationCode?.invalid && confirmationCode?.touched">
+          <span *ngIf="confirmationCode?.errors?.['required']">Confirmation code is required</span>
+          <span *ngIf="confirmationCode?.errors?.['minlength'] || confirmationCode?.errors?.['maxlength']">Code must be 6 digits</span>
+        </div>
+      </div>
+
+      <div class="error-message" *ngIf="error">
+        {{ error }}
+      </div>
+
+      <button
+        type="submit"
+        [disabled]="confirmationForm.invalid || isLoading"
+        class="submit-button"
+      >
+        <span *ngIf="!isLoading">Confirm Account</span>
+        <span *ngIf="isLoading">Confirming...</span>
+      </button>
+
+      <button
+        type="button"
+        class="secondary-button"
+        (click)="showConfirmation = false"
+      >
+        Back to Login
+      </button>
+    </form>
+
+    <!-- Sign Up Form -->
+    <form *ngIf="isSignUpMode" [formGroup]="signUpForm" (ngSubmit)="onSignUp()">
+      <div class="form-group">
+        <label for="fullName">Full Name</label>
+        <input
+          type="text"
+          id="fullName"
+          formControlName="fullName"
+          [class.invalid]="fullName?.invalid && fullName?.touched"
+          placeholder="Enter your full name"
+        />
+        <div class="error-message" *ngIf="fullName?.invalid && fullName?.touched">
+          <span *ngIf="fullName?.errors?.['required']">Full name is required</span>
+          <span *ngIf="fullName?.errors?.['minlength']">Name must be at least 2 characters</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input
+          type="email"
+          id="email"
+          formControlName="email"
+          [class.invalid]="email?.invalid && email?.touched"
+          placeholder="Enter your email"
+        />
+        <div class="error-message" *ngIf="email?.invalid && email?.touched">
+          <span *ngIf="email?.errors?.['required']">Email is required</span>
+          <span *ngIf="email?.errors?.['email']">Please enter a valid email</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="signUpPassword">Password</label>
+        <input
+          type="password"
+          id="signUpPassword"
+          formControlName="password"
+          [class.invalid]="signUpPassword?.invalid && signUpPassword?.touched"
+          placeholder="Create a password"
+        />
+        <div class="error-message" *ngIf="signUpPassword?.invalid && signUpPassword?.touched">
+          <span *ngIf="signUpPassword?.errors?.['required']">Password is required</span>
+          <span *ngIf="signUpPassword?.errors?.['minlength']">Password must be at least 6 characters</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="confirmPassword">Confirm Password</label>
+        <input
+          type="password"
+          id="confirmPassword"
+          formControlName="confirmPassword"
+          [class.invalid]="confirmPassword?.invalid && confirmPassword?.touched"
+          placeholder="Confirm your password"
+        />
+        <div class="error-message" *ngIf="confirmPassword?.invalid && confirmPassword?.touched">
+          <span *ngIf="confirmPassword?.errors?.['required']">Please confirm your password</span>
+        </div>
+        <div class="error-message" *ngIf="signUpForm.errors?.['passwordMismatch'] && confirmPassword?.touched">
+          Passwords do not match
+        </div>
+      </div>
+
+      <div class="error-message" *ngIf="error">
+        {{ error }}
+      </div>
+
+      <button
+        type="submit"
+        [disabled]="signUpForm.invalid || isLoading"
+        class="submit-button"
+      >
+        <span *ngIf="!isLoading">Create Account</span>
+        <span *ngIf="isLoading">Creating Account...</span>
+      </button>
+    </form>
+  </div>
+</div>

@@ -1,0 +1,73 @@
+.stock-chart-container {
+  background: transparent;
+  border: none;
+  padding: 0.5rem;
+  height: 260px; // Default height for dashboard (no volume)
+  display: flex;
+  flex-direction: column;
+  
+  // Increased height for detail view (with volume chart)
+  &.detail-view {
+    height: 300px; // Reduced to accommodate smaller price chart (2/3 of previous)
+    padding: 0.25rem;
+  }
+}
+
+.loading-state,
+.error-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+.chart-wrapper {
+  flex: 1;
+  position: relative;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+
+  .main-chart {
+    flex: 1; // Default: main chart takes full space (dashboard)
+    position: relative;
+    min-height: 200px;
+    
+    canvas {
+      max-width: 100%;
+      height: 100%;
+      
+      // Add cursor pointer for clickable charts (not in detail view)
+      &.clickable-chart {
+        cursor: pointer;
+      }
+    }
+  }
+
+  .volume-chart {
+    flex: 0 0 40px; // Reduced height to half (40px instead of 80px)
+    position: relative;
+    min-height: 40px;
+    margin-top: 2px; // Reduced from 8px
+    margin-left: 10px; // Reduced from 20px
+    
+    canvas {
+      max-width: 100%;
+      height: 100%;
+    }
+  }
+}
+
+// Adjust layout for detail view with volume chart
+.stock-chart-container.detail-view .chart-wrapper {
+  min-height: 260px; // Reduced proportionally
+  
+  .main-chart {
+    flex: 1; // Main chart takes remaining space after volume chart
+  }
+}
+
+// Global styles for Chart.js title when clickable
+:host ::ng-deep .clickable-chart-title {
+  cursor: pointer !important;
+}

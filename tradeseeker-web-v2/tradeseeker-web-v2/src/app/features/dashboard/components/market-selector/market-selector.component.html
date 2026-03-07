@@ -1,0 +1,13 @@
+<div class="market-selector">
+  <label class="selector-label">Market:</label>
+  <div class="button-group">
+    <button
+      *ngFor="let market of markets"
+      [class.active]="market === selectedMarket"
+      (click)="onMarketSelect(market)"
+      class="market-button"
+    >
+      {{ market }}
+    </button>
+  </div>
+</div>

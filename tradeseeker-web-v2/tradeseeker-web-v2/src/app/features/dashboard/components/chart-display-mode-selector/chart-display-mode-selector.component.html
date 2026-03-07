@@ -1,0 +1,19 @@
+<div class="display-mode-selector">
+  <label class="selector-label">Display:</label>
+  <div class="radio-group">
+    <label
+      *ngFor="let mode of displayModes"
+      [class.selected]="mode.value === selectedMode"
+      class="radio-option"
+    >
+      <input
+        type="radio"
+        [value]="mode.value"
+        [checked]="mode.value === selectedMode"
+        (change)="onModeSelect(mode.value)"
+        name="displayMode"
+      />
+      <span class="radio-label">{{ mode.label }}</span>
+    </label>
+  </div>
+</div>

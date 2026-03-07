@@ -1,0 +1,22 @@
+<div class="stock-chart-container" [class.detail-view]="isDetailView">
+  <div *ngIf="isLoading" class="loading-state">
+    <app-loading-spinner></app-loading-spinner>
+  </div>
+
+  <div *ngIf="error" class="error-state">
+    <app-error-message [message]="error"></app-error-message>
+  </div>
+
+  <div *ngIf="!isLoading && !error" class="chart-wrapper">
+    <div class="main-chart">
+      <canvas 
+        #chartCanvas
+        [class.clickable-chart]="!isDetailView"
+        (click)="onCanvasClick($event)">
+      </canvas>
+    </div>
+    <div *ngIf="isDetailView" class="volume-chart">
+      <canvas #volumeCanvas></canvas>
+    </div>
+  </div>
+</div>

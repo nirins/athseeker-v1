@@ -1,0 +1,323 @@
+.stock-detail-container {
+  padding: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.stock-title {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.controls {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.openai-button {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  
+  p {
+    margin-top: 20px;
+    font-size: 1.1rem;
+    color: #666;
+  }
+}
+
+.error-container {
+  display: flex;
+  justify-content: center;
+  margin: 40px 0;
+}
+
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.chart-item {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.chart-header {
+  background-color: #f8f9fa;
+  padding: 10px 15px;
+  border-bottom: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #333;
+  }
+
+  .data-points {
+    font-size: 0.8rem;
+    color: #666;
+    font-weight: 500;
+  }
+}
+
+.chart-wrapper {
+  padding: 2px; // Reduced from 10px
+  height: 320px; // Reduced to 2/3 of previous height (from 380px)
+}
+
+// Responsive design
+@media (max-width: 1200px) {
+  .charts-grid {
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 15px;
+  }
+}
+
+@media (max-width: 768px) {
+  .stock-detail-container {
+    padding: 15px;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 15px;
+    text-align: center;
+  }
+
+  .stock-title {
+    font-size: 1.5rem;
+  }
+
+  .controls {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .openai-button {
+    order: -1; // Move OpenAI button to the top on mobile
+    width: 100%;
+    max-width: 200px;
+  }
+
+  .charts-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .chart-item {
+    min-width: 0;
+  }
+
+  .chart-wrapper {
+    height: 240px; // Reduced mobile height proportionally (2/3 of 280px)
+    padding: 2px; // Reduced from 8px
+  }
+
+  .chart-header {
+    padding: 8px 12px;
+    
+    h3 {
+      font-size: 0.9rem;
+    }
+    
+    .data-points {
+      font-size: 0.75rem;
+    }
+  }
+
+  // Mobile OpenAI Analysis styles
+  .analysis-header {
+    padding: 10px 15px;
+    flex-wrap: wrap;
+
+    h2 { 
+      font-size: 1rem; 
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .sentiment-badge { 
+      font-size: 0.75rem; 
+      padding: 3px 10px; 
+    }
+  }
+
+  .analysis-content {
+    padding: 20px 15px;
+
+    .analysis-point {
+      padding: 15px;
+      margin-bottom: 20px;
+
+      .point-content h4 { font-size: 1rem; }
+    }
+
+    h3 { font-size: 1rem; }
+  }
+}
+
+// OpenAI Analysis Styles
+.openai-analysis {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-top: 30px;
+  overflow: hidden;
+}
+
+.analysis-header {
+  background: #f8f9fa;
+  color: #333;
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  border-bottom: 1px solid #e0e0e0;
+
+  h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+    flex: 1;
+  }
+
+  .sentiment-badge {
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: capitalize;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+
+    &.sentiment-positive {
+      background: rgba(34, 197, 94, 0.15);
+      color: #16a34a;
+      border: 1px solid rgba(34, 197, 94, 0.3);
+    }
+
+    &.sentiment-negative {
+      background: rgba(239, 68, 68, 0.15);
+      color: #dc2626;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    &.sentiment-neutral {
+      background: rgba(234, 179, 8, 0.15);
+      color: #ca8a04;
+      border: 1px solid rgba(234, 179, 8, 0.3);
+    }
+  }
+}
+
+.analysis-content {
+  padding: 25px;
+  line-height: 1.6;
+  color: #333;
+
+  .analysis-point {
+    margin-bottom: 25px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #667eea;
+
+    &:last-child { margin-bottom: 0; }
+
+    .point-content {
+      h4 {
+        margin: 0 0 10px 0;
+        color: #667eea;
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+
+      p { margin: 0; text-align: justify; }
+    }
+  }
+
+  h3 {
+    color: #667eea;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 20px 0 10px 0;
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 5px;
+    &:first-child { margin-top: 0; }
+  }
+
+  p { margin: 15px 0; text-align: justify; }
+  strong { color: #555; font-weight: 600; }
+  em { color: #666; }
+}
+
+.openai-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  margin-top: 30px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  
+  p {
+    margin-top: 20px;
+    font-size: 1.1rem;
+    color: #666;
+  }
+}
+
+.openai-error { margin-top: 30px; }

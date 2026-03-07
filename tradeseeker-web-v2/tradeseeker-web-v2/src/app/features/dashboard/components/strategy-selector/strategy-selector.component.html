@@ -1,0 +1,13 @@
+<div class="strategy-selector">
+  <label class="selector-label">Strategy:</label>
+  <div class="button-group">
+    <button
+      *ngFor="let strategy of strategies"
+      [class.active]="strategy.value === selectedStrategy"
+      (click)="onStrategySelect(strategy.value)"
+      class="strategy-button"
+    >
+      {{ strategy.label }}
+    </button>
+  </div>
+</div>

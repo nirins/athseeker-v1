@@ -1,0 +1,39 @@
+.market-selector {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.selector-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.button-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.market-button {
+  padding: 0.25rem 0.5rem;
+  background-color: white;
+  color: #666;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: #f5f5f5;
+    border-color: #888;
+  }
+
+  &.active {
+    background-color: #888;
+    color: white;
+    border-color: #888;
+  }
+}
