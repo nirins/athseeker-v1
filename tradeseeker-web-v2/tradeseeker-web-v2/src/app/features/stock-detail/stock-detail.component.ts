@@ -51,7 +51,7 @@ export class StockDetailComponent implements OnInit, OnDestroy {
   stockDataArray: StockData[] = [];
   isLoading = false;
   error: string | null = null;
-  selectedChartType: ChartType = 'line';
+  selectedChartType: ChartType = 'candlestick';
   selectedDisplayMode: ChartDisplayMode = 'both';
   
   // OpenAI Analysis properties
