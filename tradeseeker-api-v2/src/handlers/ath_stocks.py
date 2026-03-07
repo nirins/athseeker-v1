@@ -66,8 +66,13 @@ def handle_ath_stocks(query_params: Dict[str, Any]) -> dict:
         # Apply in-memory filtering for min_gain
         filtered_results = _apply_filters(results, min_gain)
         
-        # Sort by detection_date descending (most recent first)
-        sorted_results = sorted(filtered_results, key=lambda x: x.get('detection_date', ''), reverse=True)
+        # Sort by beauty_score descending (highest beauty score first)
+        # Fall back to detection_date if beauty_score is missing
+        sorted_results = sorted(
+            filtered_results, 
+            key=lambda x: (x.get('beauty_score', 0), x.get('detection_date', '')), 
+            reverse=True
+        )
         
         logger.info(
             f"Returning {len(sorted_results)} results "
@@ -110,6 +115,7 @@ def _execute_query(
     Execute optimal DynamoDB query based on parameters.
     
     Query strategy:
+    - If no date filters and market specified: Use beauty_score-index GSI (ordered by beauty score)
     - If date + market: Use market_code-detection_date-index GSI
     - If date only: Use detection_date-index GSI
     - If days: Calculate date range and use GSI
@@ -138,7 +144,12 @@ def _execute_query(
         logger.info(f"Using date range query strategy for last {days} days")
         return db_client.query_ath_stocks_by_date_range(start_date, end_date, market)
     
-    # Strategy 3: Scan (least efficient, use with caution)
+    # Strategy 3: Beauty score query (no date filters, market specified)
+    if market and not date and not days:
+        logger.info(f"Using beauty score query strategy for market={market}")
+        return db_client.query_ath_stocks_by_beauty_score(market, limit)
+    
+    # Strategy 4: Scan (least efficient, use with caution)
     logger.warning(
         "No date filter provided - performing table scan. "
         "Consider adding date or days parameter for better performance."

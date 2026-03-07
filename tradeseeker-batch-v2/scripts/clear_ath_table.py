@@ -65,6 +65,10 @@ def clear_ath_table(recreate=False):
                     {
                         'AttributeName': 'market_code',
                         'AttributeType': 'S'
+                    },
+                    {
+                        'AttributeName': 'beauty_score',
+                        'AttributeType': 'N'
                     }
                 ],
                 BillingMode='PAY_PER_REQUEST',
@@ -75,6 +79,22 @@ def clear_ath_table(recreate=False):
                             {
                                 'AttributeName': 'market_code',
                                 'KeyType': 'HASH'
+                            }
+                        ],
+                        'Projection': {
+                            'ProjectionType': 'ALL'
+                        }
+                    },
+                    {
+                        'IndexName': 'beauty_score-index',
+                        'KeySchema': [
+                            {
+                                'AttributeName': 'market_code',
+                                'KeyType': 'HASH'
+                            },
+                            {
+                                'AttributeName': 'beauty_score',
+                                'KeyType': 'RANGE'
                             }
                         ],
                         'Projection': {

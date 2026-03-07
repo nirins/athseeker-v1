@@ -8,6 +8,7 @@ import logging
 import time
 from typing import Optional
 from datetime import datetime, timedelta
+from decimal import Decimal
 
 import boto3
 from boto3.dynamodb.conditions import Key, Attr
@@ -615,6 +616,58 @@ class DynamoDBClient:
             execution_time = time.time() - start_time
             logger.error(
                 f"DynamoDB query failed after {execution_time:.3f}s: "
+                f"{e.response['Error']['Code']} - {e.response['Error']['Message']}"
+            )
+            raise
+    def query_ath_stocks_by_beauty_score(
+        self,
+        market_code: str = 'US',
+        limit: int = 50,
+        min_beauty_score: float = 0.0
+    ) -> list[dict]:
+        """
+        Query ATH stocks ordered by beauty score descending.
+
+        Uses beauty_score-index GSI for efficient querying by beauty score.
+
+        Args:
+            market_code: Market filter (US, BK, CC) - defaults to US
+            limit: Maximum number of results to return
+            min_beauty_score: Minimum beauty score threshold
+
+        Returns:
+            List of ATH stock records ordered by beauty score descending
+
+        Raises:
+            ClientError: If DynamoDB operation fails
+        """
+        start_time = time.time()
+
+        try:
+            logger.info(f"Querying ATH stocks by beauty score for market={market_code}, min_score={min_beauty_score}")
+
+            # Convert float to Decimal for DynamoDB
+            min_score_decimal = Decimal(str(min_beauty_score))
+            
+            # Query using beauty_score-index GSI
+            response = self.ath_stocks_table.query(
+                IndexName='beauty_score-index',
+                KeyConditionExpression=Key('market_code').eq(market_code) &
+                                     Key('beauty_score').gte(min_score_decimal),
+                ScanIndexForward=False,  # Sort descending (highest beauty score first)
+                Limit=limit
+            )
+
+            items = response.get('Items', [])
+            execution_time = time.time() - start_time
+
+            logger.info(f"Found {len(items)} ATH stock records ordered by beauty score in {execution_time:.3f}s")
+            return items
+
+        except ClientError as e:
+            execution_time = time.time() - start_time
+            logger.error(
+                f"DynamoDB beauty score query failed after {execution_time:.3f}s: "
                 f"{e.response['Error']['Code']} - {e.response['Error']['Message']}"
             )
             raise

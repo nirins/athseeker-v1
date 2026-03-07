@@ -166,10 +166,23 @@ resource "aws_dynamodb_table" "ath_detections" {
     type = "S"
   }
 
+  attribute {
+    name = "beauty_score"
+    type = "N"
+  }
+
   # GSI for querying by market (all ATH detections in specific market)
   global_secondary_index {
     name            = "market_code-index"
     hash_key        = "market_code"
+    projection_type = "ALL"
+  }
+
+  # GSI for querying by beauty score (ordered by beauty score descending)
+  global_secondary_index {
+    name            = "beauty_score-index"
+    hash_key        = "market_code"
+    range_key       = "beauty_score"
     projection_type = "ALL"
   }
 
