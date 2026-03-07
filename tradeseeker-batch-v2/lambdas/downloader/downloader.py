@@ -134,6 +134,10 @@ class StockDownloader:
         # Filter data based on market code to stay within DynamoDB item size limits (400KB)
         filtered_data = self.filter_data_by_retention(sorted_data, market_code)
         
+        # Check data quality first - skip if poor quality detected
+        if not self.check_data_quality(filtered_data, symbol_with_market):
+            return None
+        
         # Skip processing if latest price is less than $1 (penny stocks/low-value crypto)
         if filtered_data and filtered_data[-1]['close'] < 1.0:
             logger.info(f"Skipping {symbol_with_market}: latest price ${filtered_data[-1]['close']:.4f} < $1.00")
@@ -153,6 +157,68 @@ class StockDownloader:
         candle_metrics = calculate_candle_metrics(filtered_data)
         
         return filtered_data, moving_averages, candle_metrics
+    
+    def check_data_quality(self, price_data: List[Dict], symbol_with_market: str) -> bool:
+        """
+        Check data quality by detecting stale/identical OHLC values
+        
+        Args:
+            price_data: List of price records
+            symbol_with_market: Symbol with market code for logging
+            
+        Returns:
+            bool: True if data quality is good, False if poor quality detected
+        """
+        if not price_data or len(price_data) < 10:
+            return True  # Not enough data to assess quality
+        
+        # Check the most recent 30 days for stale data patterns
+        recent_data = price_data[-30:] if len(price_data) >= 30 else price_data
+        
+        consecutive_identical_days = 0
+        max_consecutive_identical = 0
+        total_identical_days = 0
+        
+        for i in range(1, len(recent_data)):
+            current = recent_data[i]
+            previous = recent_data[i-1]
+            
+            # Check if OHLC values are identical (indicating stale/suspended trading)
+            current_ohlc = (current['open'], current['high'], current['low'], current['close'])
+            previous_ohlc = (previous['open'], previous['high'], previous['low'], previous['close'])
+            
+            if current_ohlc == previous_ohlc:
+                consecutive_identical_days += 1
+                total_identical_days += 1
+                max_consecutive_identical = max(max_consecutive_identical, consecutive_identical_days)
+            else:
+                consecutive_identical_days = 0
+        
+        # Calculate quality metrics
+        total_days_checked = len(recent_data) - 1
+        identical_percentage = (total_identical_days / total_days_checked * 100) if total_days_checked > 0 else 0
+        
+        # Quality thresholds
+        max_consecutive_threshold = 7  # More than 7 consecutive identical days is suspicious
+        max_percentage_threshold = 50  # More than 50% identical days indicates poor quality
+        
+        # Determine if data quality is poor
+        is_poor_quality = (
+            max_consecutive_identical > max_consecutive_threshold or
+            identical_percentage > max_percentage_threshold
+        )
+        
+        if is_poor_quality:
+            logger.warning(f"Poor data quality detected for {symbol_with_market}: "
+                         f"{max_consecutive_identical} max consecutive identical days, "
+                         f"{identical_percentage:.1f}% identical days in recent {total_days_checked} days. "
+                         f"Skipping all detections.")
+            return False
+        
+        logger.info(f"Data quality check passed for {symbol_with_market}: "
+                   f"{max_consecutive_identical} max consecutive identical days, "
+                   f"{identical_percentage:.1f}% identical days")
+        return True
     
     def check_all_detections(self, symbol_with_market: str, market_code: str, moving_averages: List[Dict], price_data: List[Dict]) -> Dict:
         """
