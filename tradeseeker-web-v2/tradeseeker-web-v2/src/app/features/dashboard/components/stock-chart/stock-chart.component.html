@@ -8,19 +8,32 @@
   </div>
 
   <div *ngIf="!isLoading && !error" class="chart-wrapper">
-    <!-- Chart Header with Symbol and Score Button -->
-    <div class="chart-header" *ngIf="!isDetailView">
-      <h3 class="chart-title" (click)="navigateToDetail()">{{ currentStockData.symbol }}</h3>
-      <button class="score-btn" (click)="showGradeSelectionPopup()" title="Score this chart for training data">
-        <span class="score-icon">⭐</span>
-      </button>
-    </div>
-    
     <div class="main-chart">
+      <!-- Overlay Header on top of chart -->
+      <div class="chart-overlay-header" *ngIf="!isDetailView">
+        <div class="header-content">
+          <h3 class="chart-title" 
+              (click)="navigateToDetail()" 
+              (auxclick)="$event.button === 1 && navigateToDetail()"
+              title="Click to open {{ currentStockData.symbol }} details in new tab">
+            {{ currentStockData.symbol }}
+          </h3>
+          <button 
+            class="score-btn" 
+            *ngIf="isLabelMode"
+            (click)="showGradeSelectionPopup()" 
+            title="Score this chart for training data">
+            <span class="score-icon">🏷️</span>
+          </button>
+        </div>
+      </div>
+      
       <canvas 
         #chartCanvas
         [class.clickable-chart]="!isDetailView"
-        (click)="onCanvasClick($event)">
+        (click)="onCanvasClick($event)"
+        (auxclick)="onCanvasAuxClick($event)"
+        title="Click to open {{ currentStockData.symbol }} details in new tab">
       </canvas>
     </div>
     <div *ngIf="isDetailView" class="volume-chart">

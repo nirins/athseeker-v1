@@ -28,59 +28,74 @@
   display: flex;
   flex-direction: column;
 
-  .chart-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.25rem 0.5rem;
-    margin-bottom: 0.25rem;
-    
-    .chart-title {
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: #333;
-      margin: 0;
-      cursor: pointer;
-      transition: color 0.2s ease;
-      
-      &:hover {
-        color: #10b981;
-      }
-    }
-    
-    .score-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 24px;
-      height: 24px;
-      background: #f3f4f6;
-      border: 1px solid #d1d5db;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      
-      &:hover {
-        background: #10b981;
-        border-color: #10b981;
-        
-        .score-icon {
-          color: white;
-        }
-      }
-      
-      .score-icon {
-        font-size: 0.75rem;
-        color: #6b7280;
-        transition: color 0.2s ease;
-      }
-    }
-  }
-
   .main-chart {
     flex: 1; // Default: main chart takes full space (dashboard)
     position: relative;
     min-height: 200px;
+    
+    .chart-overlay-header {
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      right: 8px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+      pointer-events: none; // Allow clicks to pass through to chart
+      
+      .header-content {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        pointer-events: auto; // Re-enable clicks for content
+        background: rgba(255, 255, 255, 0.9);
+        padding: 2px 6px;
+        border-radius: 4px;
+        backdrop-filter: blur(2px);
+      }
+      
+      .chart-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #333;
+        margin: 0;
+        cursor: pointer;
+        transition: color 0.2s ease;
+        
+        &:hover {
+          color: #10b981;
+        }
+      }
+      
+      .score-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 20px;
+        height: 20px;
+        background: rgba(243, 244, 246, 0.9);
+        border: 1px solid rgba(209, 213, 219, 0.8);
+        border-radius: 3px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        
+        &:hover {
+          background: #10b981;
+          border-color: #10b981;
+          
+          .score-icon {
+            color: white;
+          }
+        }
+        
+        .score-icon {
+          font-size: 0.7rem;
+          color: #6b7280;
+          transition: color 0.2s ease;
+        }
+      }
+    }
     
     canvas {
       max-width: 100%;

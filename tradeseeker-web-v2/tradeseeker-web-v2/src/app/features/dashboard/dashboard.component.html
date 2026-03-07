@@ -28,6 +28,15 @@
         <span *ngIf="!isLoading">Refresh</span>
         <span *ngIf="isLoading">Refreshing...</span>
       </button>
+
+      <!-- Label Training Toggle -->
+      <button 
+        class="label-training-toggle"
+        (click)="toggleLabelMode()"
+        [class.active]="isLabelMode">
+        <span class="toggle-icon">🏷️</span>
+        {{ isLabelMode ? 'Exit Label Mode' : 'Label Training' }}
+      </button>
     </div>
   </div>
 
@@ -55,6 +64,7 @@
     [stockData]="stockDataArray"
     [displayMode]="selectedDisplayMode"
     [chartType]="selectedChartType"
+    [isLabelMode]="isLabelMode"
     (gradeSelectionRequested)="onGradeSelectionRequested($event)">
   </app-chart-grid>
 

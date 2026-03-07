@@ -41,6 +41,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
   isLoading = false;
   error: string | null = null;
   
+  // Label mode for training data
+  isLabelMode = false;
+  
   // Pagination properties
   private readonly PAGE_SIZE = 50;
   private currentOffset = 0;
@@ -386,6 +389,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
 
     this.fetchData();
+  }
+
+  /**
+   * Toggle between view mode and label mode
+   */
+  toggleLabelMode(): void {
+    this.isLabelMode = !this.isLabelMode;
+    console.log(`Switched to ${this.isLabelMode ? 'label' : 'view'} mode`);
   }
 
   private setupAutoRefresh(): void {

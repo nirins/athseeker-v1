@@ -24,6 +24,7 @@ export class StockChartComponent implements OnInit, OnChanges, OnDestroy, AfterV
   @Input() displayMode: ChartDisplayMode = 'both';
   @Input() chartType: ChartType = 'candlestick';
   @Input() isDetailView: boolean = false; // New input to control clickability
+  @Input() isLabelMode: boolean = false; // New input to control label button visibility
   @Output() gradeSelectionRequested = new EventEmitter<{symbol: string, stockData: StockData}>();
   @ViewChild('chartCanvas', { static: false }) chartCanvas!: ElementRef<HTMLCanvasElement>;
   @ViewChild('volumeCanvas', { static: false }) volumeCanvas!: ElementRef<HTMLCanvasElement>;
@@ -685,11 +686,14 @@ export class StockChartComponent implements OnInit, OnChanges, OnDestroy, AfterV
   }
 
   /**
-   * Navigate to stock detail page
+   * Navigate to stock detail page in new tab
    */
   navigateToDetail(): void {
     if (!this.isDetailView && this.currentStockData?.symbol) {
-      this.router.navigate(['/stock', this.currentStockData.symbol]);
+      const url = this.router.serializeUrl(
+        this.router.createUrlTree(['/stock', this.currentStockData.symbol])
+      );
+      window.open(url, '_blank');
     }
   }
 
@@ -712,14 +716,29 @@ export class StockChartComponent implements OnInit, OnChanges, OnDestroy, AfterV
   }
 
   /**
-   * Handle canvas click events - navigate to detail page
+   * Handle canvas click events - navigate to detail page in new tab
    */
   onCanvasClick(event: MouseEvent): void {
     if (this.isDetailView) {
       return;
     }
 
-    // Navigate to detail page when clicking anywhere on the chart
+    // Navigate to detail page in new tab when clicking anywhere on the chart
     this.navigateToDetail();
+  }
+
+  /**
+   * Handle canvas auxiliary click events (middle mouse button)
+   */
+  onCanvasAuxClick(event: MouseEvent): void {
+    if (this.isDetailView) {
+      return;
+    }
+
+    // Handle middle mouse button click (button === 1)
+    if (event.button === 1) {
+      event.preventDefault();
+      this.navigateToDetail();
+    }
   }
 }

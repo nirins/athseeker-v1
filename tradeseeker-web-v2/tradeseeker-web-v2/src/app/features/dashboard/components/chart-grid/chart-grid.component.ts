@@ -14,6 +14,7 @@ export class ChartGridComponent {
   @Input() stockData: StockData[] = [];
   @Input() displayMode: ChartDisplayMode = 'both';
   @Input() chartType: ChartType = 'candlestick';
+  @Input() isLabelMode: boolean = false;
   @Output() gradeSelectionRequested = new EventEmitter<{symbol: string, stockData: StockData}>();
 
   onGradeSelectionRequested(event: {symbol: string, stockData: StockData}): void {
