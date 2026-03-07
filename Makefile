@@ -1,7 +1,7 @@
 # TradeSeekerV2 - Root Makefile
 # Orchestrates all three components: API, Batch, and Web
 
-.PHONY: help all api batch web deploy-all clean test status
+.PHONY: help all api batch web deploy-all clean test status train train-migrate train-check train-install train-analyze train-apply model-list model-switch model-test model-config
 
 # Default target
 help:
@@ -12,6 +12,17 @@ help:
 	@echo "  make api        - Build and deploy API only"
 	@echo "  make batch      - Build and deploy Batch processing only"
 	@echo "  make web        - Build and deploy Web frontend only"
+	@echo "  make train      - Run beauty score model calibration workflow"
+	@echo ""
+	@echo "Training data management:"
+	@echo "  make train-migrate - Migrate old training data to new grade system"
+	@echo "  make train-check   - Check training data status"
+	@echo ""
+	@echo "Model management:"
+	@echo "  make model-list    - List available beauty score models"
+	@echo "  make model-switch MODEL=<name> - Switch active model"
+	@echo "  make model-test [MODEL=<name>] - Test model with sample data"
+	@echo "  make model-config  - Show model configuration"
 	@echo ""
 	@echo "Individual operations:"
 	@echo "  make deploy-all - Deploy all components"
@@ -127,3 +138,60 @@ deploy-prod:
 	@cd tradeseeker-api-v2 && $(MAKE) deploy-prod
 	@cd tradeseeker-batch-v2 && $(MAKE) deploy-all
 	@cd tradeseeker-web-v2/tradeseeker-web-v2 && $(MAKE) all
+
+# Beauty Score Model Training and Calibration
+train-migrate:
+	@echo "🔄 Migrating training data to new grade system..."
+	@cd tradeseeker-batch-v2/scripts && python3 migrate_training_data.py
+
+train-check:
+	@echo "📊 Checking training data status..."
+	@cd tradeseeker-batch-v2/scripts && python3 check_training_data.py
+
+train-install:
+	@echo "📦 Installing calibration dependencies..."
+	@cd tradeseeker-batch-v2/scripts && pip3 install -r requirements-calibration.txt
+	@echo "✅ Calibration dependencies installed"
+
+train-analyze:
+	@echo "🔬 Running calibration analysis..."
+	@cd tradeseeker-batch-v2/scripts && python3 calibrate_beauty_model.py
+
+train-apply:
+	@echo "⚖️  Applying optimized weights..."
+	@cd tradeseeker-batch-v2/scripts && python3 update_beauty_weights.py
+
+# Model Management
+model-list:
+	@echo "📋 Listing beauty score models..."
+	@cd tradeseeker-batch-v2/scripts && python3 manage_beauty_models.py list
+
+model-switch:
+	@echo "🔄 Switching beauty score model..."
+	@if [ -z "$(MODEL)" ]; then \
+		echo "❌ Usage: make model-switch MODEL=<model_name>"; \
+		echo "   Available models: original, calibrated"; \
+	else \
+		cd tradeseeker-batch-v2/scripts && python3 manage_beauty_models.py switch $(MODEL); \
+	fi
+
+model-test:
+	@echo "🧪 Testing beauty score model..."
+	@if [ -z "$(MODEL)" ]; then \
+		cd tradeseeker-batch-v2/scripts && python3 manage_beauty_models.py test; \
+	else \
+		cd tradeseeker-batch-v2/scripts && python3 manage_beauty_models.py test $(MODEL); \
+	fi
+
+model-config:
+	@echo "⚙️  Showing model configuration..."
+	@cd tradeseeker-batch-v2/scripts && python3 manage_beauty_models.py config
+
+train: train-check train-install train-analyze train-apply
+	@echo ""
+	@echo "🎯 Training workflow completed!"
+	@echo ""
+	@echo "💡 Next steps:"
+	@echo "   1. Review the calibration report: tradeseeker-batch-v2/scripts/beauty_model_calibration_report.json"
+	@echo "   2. If weights were updated, deploy the changes: make batch"
+	@echo "   3. Monitor beauty score performance with new model"

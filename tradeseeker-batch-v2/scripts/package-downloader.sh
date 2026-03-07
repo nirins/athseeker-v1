@@ -30,6 +30,12 @@ cp "$LAMBDA_DIR/ath_detector.py" "$PACKAGE_DIR/"
 cp "$LAMBDA_DIR/cross_detector.py" "$PACKAGE_DIR/"
 cp "$LAMBDA_DIR/breakout_analyzer.py" "$PACKAGE_DIR/"
 cp "$LAMBDA_DIR/storage.py" "$PACKAGE_DIR/"
+
+# Copy beauty models system
+echo "Copying beauty models..."
+cp -r "src/beauty_models" "$PACKAGE_DIR/"
+cp "$LAMBDA_DIR/breakout_analyzer.py" "$PACKAGE_DIR/"
+cp "$LAMBDA_DIR/storage.py" "$PACKAGE_DIR/"
 cp "$LAMBDA_DIR/api_client.py" "$PACKAGE_DIR/"
 
 # Create ZIP file

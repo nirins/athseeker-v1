@@ -5,6 +5,20 @@ Analyzes ATH breakouts and assigns a beauty score based on technical characteris
 
 from typing import Dict, List
 import logging
+import sys
+import os
+
+# Add the src directory to the path to import beauty models
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../../src'))
+
+try:
+    from beauty_models.model_factory import get_active_beauty_model
+    MODEL_SYSTEM_AVAILABLE = True
+except ImportError:
+    # Fallback to original calculation if model system not available
+    MODEL_SYSTEM_AVAILABLE = False
+
+# Always import statistics for fallback method
 from statistics import mean, stdev
 
 logger = logging.getLogger()
@@ -45,6 +59,41 @@ class BreakoutAnalyzer:
             
             logger.info(f"ATH found at index {ath_index} out of {len(price_data)} records")
             
+            # Use new model system if available
+            if MODEL_SYSTEM_AVAILABLE:
+                return self._calculate_with_model_system(price_data, ath_index)
+            else:
+                # Fallback to original calculation
+                return self._calculate_with_original_method(price_data, ath_index)
+                
+        except Exception as e:
+            logger.error(f"Error calculating breakout beauty score: {str(e)}")
+            return {'beauty_score': 0, 'reason': f'Error: {str(e)}'}
+    
+    def _calculate_with_model_system(self, price_data: List[Dict], ath_index: int) -> Dict:
+        """Calculate beauty score using the new model system"""
+        try:
+            # Get the active beauty model
+            model = get_active_beauty_model()
+            
+            # Prepare data segments for the model
+            pre_breakout = price_data[max(0, ath_index - 20):ath_index]
+            breakout_day = price_data[ath_index]
+            post_breakout = price_data[ath_index:min(len(price_data), ath_index + 10)]
+            
+            # Calculate beauty score using the model
+            result = model.calculate_beauty_score(pre_breakout, breakout_day, post_breakout)
+            
+            logger.info(f"Beauty score calculated using model: {model.model_name} v{model.version}")
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error with model system, falling back to original: {str(e)}")
+            return self._calculate_with_original_method(price_data, ath_index)
+    
+    def _calculate_with_original_method(self, price_data: List[Dict], ath_index: int) -> Dict:
+        """Fallback to original beauty score calculation method"""
+        try:
             # Require at least 10 days before ATH (reduced from 20)
             if ath_index < 10:
                 logger.warning(f"Insufficient data before ATH: only {ath_index} records")
@@ -67,7 +116,7 @@ class BreakoutAnalyzer:
             
             logger.info(f"Component scores: consolidation={consolidation_score}, volume={volume_score}, momentum={momentum_score}, green={green_candle_score}, gap={gap_score}")
             
-            # Weighted beauty score (0-100)
+            # Weighted beauty score (0-100) - Original fixed weights
             beauty_score = (
                 consolidation_score * 0.25 +  # 25% - How well consolidated before breakout
                 volume_score * 0.20 +         # 20% - Volume surge on breakout
@@ -83,14 +132,16 @@ class BreakoutAnalyzer:
                 'momentum_score': round(momentum_score, 1),
                 'green_candle_score': round(green_candle_score, 1),
                 'gap_score': round(gap_score, 1),
-                'grade': self._get_beauty_grade(beauty_score)
+                'grade': self._get_beauty_grade(beauty_score),
+                'model_name': 'original_fallback',
+                'model_version': '1.0'
             }
             
             logger.info(f"Final beauty score: {result['beauty_score']} ({result['grade']})")
             return result
             
         except Exception as e:
-            logger.error(f"Error calculating breakout beauty score: {str(e)}")
+            logger.error(f"Error in original calculation method: {str(e)}")
             return {'beauty_score': 0, 'reason': f'Error: {str(e)}'}
     
     def _calculate_consolidation_score(self, pre_breakout: List[Dict]) -> float:

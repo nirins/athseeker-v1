@@ -1,0 +1,15 @@
+{
+  "active_model": "original",
+  "models": {
+    "original": {
+      "enabled": true,
+      "description": "Original fixed-weight model - stable baseline"
+    },
+    "calibrated": {
+      "enabled": true,
+      "description": "ML-calibrated model with optimized weights from training data"
+    }
+  },
+  "config_version": "1.0",
+  "last_updated": "2024-03-07"
+}

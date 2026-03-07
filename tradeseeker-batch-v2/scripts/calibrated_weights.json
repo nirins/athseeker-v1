@@ -1,0 +1,22 @@
+{
+  "model_name": "calibrated",
+  "model_version": "2.0",
+  "optimized_weights": {
+    "consolidation": 0.15598299324664214,
+    "volume": 0.17547480061150728,
+    "momentum": 0.30583436849844237,
+    "green_candle": 0.33641628029268145,
+    "gap": 0.026291557350726743
+  },
+  "calibration_date": "2026-03-07T17:55:17.440909",
+  "training_samples": 149,
+  "model_r2": -1.4274165360336344,
+  "improvement": 0.12477255044690683,
+  "current_weights": {
+    "consolidation": 0.25,
+    "volume": 0.2,
+    "momentum": 0.25,
+    "green_candle": 0.2,
+    "gap": 0.1
+  }
+}
