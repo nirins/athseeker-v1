@@ -1,5 +1,5 @@
 {
-  "active_model": "calibrated",
+  "active_model": "ema_model",
   "models": {
     "original": {
       "enabled": true,

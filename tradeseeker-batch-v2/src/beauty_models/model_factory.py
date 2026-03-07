@@ -12,6 +12,7 @@ import logging
 from .base_model import BaseBeautyModel
 from .original_model import OriginalBeautyModel
 from .calibrated_model import CalibratedBeautyModel
+from .ema_model import EMABeautyModel
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +22,8 @@ class BeautyModelFactory:
     # Registry of available models
     _models = {
         'original': OriginalBeautyModel,
-        'calibrated': CalibratedBeautyModel
+        'calibrated': CalibratedBeautyModel,
+        'ema_model': EMABeautyModel
     }
     
     def __init__(self, config_file: str = None):
@@ -47,6 +49,10 @@ class BeautyModelFactory:
                 'calibrated': {
                     'enabled': True,
                     'description': 'ML-calibrated model with optimized weights'
+                },
+                'ema_model': {
+                    'enabled': True,
+                    'description': 'EMA-based model focusing on moving average relationships'
                 }
             }
         }

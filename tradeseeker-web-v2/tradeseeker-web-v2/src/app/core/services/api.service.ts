@@ -65,8 +65,9 @@ export class ApiService {
         params.push(`offset=${offset}`);
       }
 
-      // Add cache-busting parameter
+      // Add aggressive cache-busting parameters
       params.push(`_t=${Date.now()}`);
+      params.push(`_r=${Math.random().toString(36).substring(7)}`);
 
       if (params.length > 0) {
         url += `?${params.join('&')}`;
@@ -129,8 +130,6 @@ export class ApiService {
     return this.http.get<any>(url).pipe(
       retry(2),
       map(response => {
-        console.log(`Stock API response for ${symbol} (${days ? days + ' days' : 'default'}):`, response);
-        
         // Handle nested data structure
         const stockData = response.data || response;
         return this.validateStockData(stockData);
@@ -176,7 +175,6 @@ export class ApiService {
    * Validate stock data has required fields and transform moving_averages to emas
    */
   private validateStockData(data: any): StockData {
-    console.log('Validating stock data:', data);
     
     if (!data) {
       throw new Error('No data received from API');
@@ -212,7 +210,6 @@ export class ApiService {
     };
 
     if (data.moving_averages && Array.isArray(data.moving_averages)) {
-      console.log(`Processing ${data.moving_averages.length} moving average points for ${data.symbol}`);
       
       // Extract EMA values from moving_averages array
       data.moving_averages.forEach((ma: any, index: number) => {
@@ -221,28 +218,6 @@ export class ApiService {
         emas.ema50.push(ma.ema_50);
         emas.ema200.push(ma.ema_200);
       });
-
-      // Count non-null values for each EMA
-      const ema7Valid = emas.ema7.filter((v: any) => v !== null && v !== undefined).length;
-      const ema30Valid = emas.ema30.filter((v: any) => v !== null && v !== undefined).length;
-      const ema50Valid = emas.ema50.filter((v: any) => v !== null && v !== undefined).length;
-      const ema200Valid = emas.ema200.filter((v: any) => v !== null && v !== undefined).length;
-
-      console.log(`EMA data for ${data.symbol}:`, {
-        total_points: data.moving_averages.length,
-        ema7_valid: ema7Valid,
-        ema30_valid: ema30Valid,
-        ema50_valid: ema50Valid,
-        ema200_valid: ema200Valid
-      });
-
-      // Log the last few EMA200 values to see if they extend to recent dates
-      const lastFewEma200 = emas.ema200.slice(-10);
-      const lastFewDates = data.moving_averages.slice(-10).map((ma: any) => ma.date);
-      console.log(`Last 10 EMA200 values for ${data.symbol}:`, lastFewEma200);
-      console.log(`Last 10 dates for ${data.symbol}:`, lastFewDates);
-    } else {
-      console.warn(`No moving_averages data provided for ${data.symbol}`);
     }
 
     // Set lastUpdated
@@ -271,7 +246,6 @@ export class ApiService {
       switch (error.status) {
         case 404:
           errorMessage = `Stock ${symbol} not found`;
-          console.warn(errorMessage);
           // For 404, we log but don't throw - let the caller handle it
           break;
         case 401:

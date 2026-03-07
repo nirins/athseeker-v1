@@ -116,7 +116,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   fetchData(): void {
       // Prevent duplicate requests
       if (this.refreshInProgress) {
-        console.log('Refresh already in progress, ignoring duplicate request');
         return;
       }
 
@@ -145,15 +144,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.apiService.getStrategyStocks(this.selectedStrategy, this.selectedMarket, requestLimit, this.currentOffset)
       .pipe(
         switchMap(response => {
-          console.log(`${this.selectedStrategy} API response (offset: ${this.currentOffset}):`, response);
-
           // Validate response structure
           if (!response || typeof response !== 'object') {
             throw new Error('Invalid API response: expected object');
           }
 
           if (!response.data || !Array.isArray(response.data)) {
-            console.warn('API response missing data array:', response);
             this.goldenCrosses = this.currentOffset === 0 ? [] : this.goldenCrosses;
             this.hasMoreData = false;
             return of([]);
@@ -161,16 +157,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
           // Extract symbols from the data array
           const symbols = response.data.map(item => item.symbol);
+          
+          // Debug: Log the first 10 symbols from API response
+          console.log('API Response - First 10 symbols in order:', symbols.slice(0, 10));
 
           // For ATH strategy, always use client-side pagination since API doesn't support proper offset
           if (this.selectedStrategy === 'ath') {
-            console.log('Using client-side pagination for ATH strategy, total symbols:', symbols.length);
             
             // Only update allSymbols on first load to avoid overwriting
             if (this.currentOffset === 0) {
               // Ensure no duplicates in allSymbols
               this.allSymbols = [...new Set(symbols)];
-              console.log(`ATH strategy: Set allSymbols to ${this.allSymbols.length} total symbols`);
             }
 
             // Calculate which symbols to show for current page
@@ -179,7 +176,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
             const pageSymbols = this.allSymbols.slice(startIndex, endIndex);
 
             this.hasMoreData = endIndex < this.allSymbols.length;
-            console.log(`ATH pagination: showing ${startIndex}-${Math.min(endIndex, this.allSymbols.length)} of ${this.allSymbols.length}, hasMoreData: ${this.hasMoreData}`);
 
             if (this.currentOffset === 0) {
               this.goldenCrosses = pageSymbols;
@@ -197,7 +193,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
             if (backendSupportsPagination) {
               // Backend supports pagination - use server-side pagination
-              console.log('Using server-side pagination');
               this.hasMoreData = symbols.length === this.PAGE_SIZE;
 
               if (this.currentOffset === 0) {
@@ -212,7 +207,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
               }
             } else {
               // Backend doesn't support pagination - use client-side pagination
-              console.log('Using client-side pagination, total symbols:', symbols.length);
               
               // Only update allSymbols on first load to avoid overwriting
               if (this.currentOffset === 0) {
@@ -241,12 +235,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
           }
 
           if (symbols.length === 0) {
-            console.log(`No ${this.selectedStrategy} symbols found for market:`, this.selectedMarket);
             return of([]);
           }
-
-          console.log(`Displaying ${symbols.length} ${this.selectedStrategy} symbols (total available: ${this.allSymbols.length})`);
-          console.log('hasMoreData:', this.hasMoreData);
 
           // Fetch stock data individually and render as they arrive
           this.fetchStockDataAsync(symbols);
@@ -274,23 +264,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
    */
   loadMore(): void {
     if (this.isLoadingMore || !this.hasMoreData) {
-      console.log('Load more blocked:', { 
-        isLoadingMore: this.isLoadingMore, 
-        hasMoreData: this.hasMoreData,
-        currentOffset: this.currentOffset,
-        allSymbolsLength: this.allSymbols.length,
-        stockDataArrayLength: this.stockDataArray.length
-      });
       return;
     }
-
-    console.log('Loading more stocks:', {
-      currentOffset: this.currentOffset,
-      pageSize: this.PAGE_SIZE,
-      allSymbolsLength: this.allSymbols.length,
-      stockDataArrayLength: this.stockDataArray.length,
-      hasMoreData: this.hasMoreData
-    });
     
     this.isLoadingMore = true;
     this.currentOffset += this.PAGE_SIZE;
@@ -304,7 +279,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     // Deduplicate symbols before fetching
     const uniqueSymbols = [...new Set(symbols)];
     
-    uniqueSymbols.forEach(symbol => {
+    // Create a map to store results and maintain order
+    const stockDataMap = new Map<string, StockData>();
+    let completedCount = 0;
+    
+    uniqueSymbols.forEach((symbol, index) => {
       this.apiService.getStockData(symbol).pipe(
         takeUntil(this.destroy$),
         catchError(error => {
@@ -313,19 +292,43 @@ export class DashboardComponent implements OnInit, OnDestroy {
           return of(null);
         })
       ).subscribe(stockData => {
+        completedCount++;
+        
         if (stockData) {
-          // Check if this symbol already exists in stockDataArray to prevent duplicates
-          const existingIndex = this.stockDataArray.findIndex(data => data.symbol === stockData.symbol);
-          if (existingIndex === -1) {
-            // Add to array as soon as data arrives (only if not already present)
-            this.stockDataArray = [...this.stockDataArray, stockData];
-            console.log(`Added ${symbol} to chart grid (${this.stockDataArray.length}/${uniqueSymbols.length})`);
-          } else {
-            console.log(`Skipped duplicate ${symbol} - already in chart grid`);
-          }
+          // Store in map with original index to maintain order
+          stockDataMap.set(symbol, stockData);
         }
+        
+        // Update the array maintaining the original order
+        this.updateStockDataArrayInOrder(uniqueSymbols, stockDataMap);
       });
     });
+  }
+  
+  /**
+   * Update stockDataArray maintaining the original symbol order
+   */
+  private updateStockDataArrayInOrder(originalSymbols: string[], stockDataMap: Map<string, StockData>): void {
+    // Build the complete ordered array from scratch each time
+    const completeOrderedArray: StockData[] = [];
+    
+    // Debug: Log the original symbol order
+    console.log('Original symbols order from API:', originalSymbols.slice(0, 5));
+    
+    // Go through ALL symbols in original order and add any that are available in the map
+    for (const symbol of originalSymbols) {
+      if (stockDataMap.has(symbol)) {
+        const stockData = stockDataMap.get(symbol)!;
+        completeOrderedArray.push(stockData);
+      }
+    }
+    
+    // Debug: Log the ordered stock data
+    console.log('Ordered stock data symbols:', completeOrderedArray.map(s => s.symbol).slice(0, 5));
+    
+    // Replace the entire array with the properly ordered one
+    this.stockDataArray = completeOrderedArray;
+    console.log('Final stockDataArray order (first 5):', this.stockDataArray.map(s => s.symbol).slice(0, 5));
   }
 
   onMarketChange(market: string): void {
@@ -366,7 +369,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
           return this.apiService.getStrategyStocks(this.selectedStrategy, market).pipe(
             switchMap(response => {
-              console.log(`Market change - ${this.selectedStrategy} API response:`, response);
               
               // Validate response structure
               if (!response || typeof response !== 'object') {
@@ -374,7 +376,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
               }
               
               if (!response.data || !Array.isArray(response.data)) {
-                console.warn('Market change - API response missing data array:', response);
                 this.goldenCrosses = [];
                 return of([]);
               }
@@ -384,11 +385,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
               this.goldenCrosses = symbols;
 
               if (symbols.length === 0) {
-                console.log(`Market change - No ${this.selectedStrategy} symbols found for market:`, market);
                 return of([]);
               }
-
-              console.log(`Market change - Found ${symbols.length} ${this.selectedStrategy} symbols:`, symbols);
               
               // Fetch stock data individually and render as they arrive
               this.fetchStockDataAsync(symbols);
@@ -407,7 +405,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
         takeUntil(this.destroy$)
       )
       .subscribe(() => {
-        console.log(`Market change - ${this.selectedStrategy} fetched, individual stock data will be added async`);
         this.isLoading = false;
         this.refreshInProgress = false;
       });
@@ -445,7 +442,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
   onRefresh(): void {
     // Prevent duplicate refresh requests
     if (this.isLoading || this.refreshInProgress) {
-      console.log('Refresh already in progress, ignoring duplicate request');
       return;
     }
 
@@ -457,7 +453,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
    */
   toggleLabelMode(): void {
     this.isLabelMode = !this.isLabelMode;
-    console.log(`Switched to ${this.isLabelMode ? 'label' : 'view'} mode`);
   }
 
   private setupAutoRefresh(): void {
@@ -523,7 +518,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       })
     ).subscribe(response => {
       if (response) {
-        console.log(`Successfully saved ${this.selectedStockForGrading?.symbol} with grade ${grade.value}`);
         // Show success feedback (optional)
         // You could add a toast notification here
       }

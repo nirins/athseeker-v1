@@ -155,23 +155,46 @@ def test_model(model_name: str = None):
         
         print(f"🧪 Testing model: {model.model_name} v{model.version}")
         
-        # Create sample data for testing
+        # Create sample data for testing with EMA values
+        # Simulate a bullish breakout scenario with proper EMA alignment
         sample_pre_breakout = [
-            {'date': '2024-01-01', 'open': 100, 'high': 102, 'low': 99, 'close': 101, 'volume': 1000000},
-            {'date': '2024-01-02', 'open': 101, 'high': 103, 'low': 100, 'close': 102, 'volume': 1100000},
-            {'date': '2024-01-03', 'open': 102, 'high': 104, 'low': 101, 'close': 103, 'volume': 1200000},
-            {'date': '2024-01-04', 'open': 103, 'high': 105, 'low': 102, 'close': 104, 'volume': 1300000},
-            {'date': '2024-01-05', 'open': 104, 'high': 106, 'low': 103, 'close': 105, 'volume': 1400000}
+            {
+                'date': '2024-01-01', 'open': 100, 'high': 102, 'low': 99, 'close': 101, 'volume': 1000000,
+                'ema_7': 100.5, 'ema_30': 99.8, 'ema_50': 99.2, 'ema_200': 98.5
+            },
+            {
+                'date': '2024-01-02', 'open': 101, 'high': 103, 'low': 100, 'close': 102, 'volume': 1100000,
+                'ema_7': 101.2, 'ema_30': 100.1, 'ema_50': 99.5, 'ema_200': 98.7
+            },
+            {
+                'date': '2024-01-03', 'open': 102, 'high': 104, 'low': 101, 'close': 103, 'volume': 1200000,
+                'ema_7': 102.1, 'ema_30': 100.5, 'ema_50': 99.8, 'ema_200': 98.9
+            },
+            {
+                'date': '2024-01-04', 'open': 103, 'high': 105, 'low': 102, 'close': 104, 'volume': 1300000,
+                'ema_7': 103.2, 'ema_30': 101.0, 'ema_50': 100.2, 'ema_200': 99.1
+            },
+            {
+                'date': '2024-01-05', 'open': 104, 'high': 106, 'low': 103, 'close': 105, 'volume': 1400000,
+                'ema_7': 104.5, 'ema_30': 101.6, 'ema_50': 100.6, 'ema_200': 99.3
+            }
         ]
         
         sample_breakout_day = {
-            'date': '2024-01-06', 'open': 107, 'high': 110, 'low': 106, 'close': 109, 'volume': 2500000
+            'date': '2024-01-06', 'open': 107, 'high': 110, 'low': 106, 'close': 109, 'volume': 2500000,
+            'ema_7': 106.8, 'ema_30': 102.5, 'ema_50': 101.2, 'ema_200': 99.6
         }
         
         sample_post_breakout = [
             sample_breakout_day,
-            {'date': '2024-01-07', 'open': 109, 'high': 112, 'low': 108, 'close': 111, 'volume': 1800000},
-            {'date': '2024-01-08', 'open': 111, 'high': 114, 'low': 110, 'close': 113, 'volume': 1600000}
+            {
+                'date': '2024-01-07', 'open': 109, 'high': 112, 'low': 108, 'close': 111, 'volume': 1800000,
+                'ema_7': 108.9, 'ema_30': 103.8, 'ema_50': 102.0, 'ema_200': 99.9
+            },
+            {
+                'date': '2024-01-08', 'open': 111, 'high': 114, 'low': 110, 'close': 113, 'volume': 1600000,
+                'ema_7': 111.2, 'ema_30': 105.2, 'ema_50': 102.9, 'ema_200': 100.2
+            }
         ]
         
         # Calculate beauty score
@@ -181,6 +204,7 @@ def test_model(model_name: str = None):
         print(f"   Beauty Score: {result.get('beauty_score', 'N/A')}")
         print(f"   Grade: {result.get('grade', 'N/A')}")
         
+        # Show component scores based on model type
         if 'consolidation_score' in result:
             print(f"   Consolidation: {result['consolidation_score']}")
         if 'volume_score' in result:
@@ -192,10 +216,27 @@ def test_model(model_name: str = None):
         if 'gap_score' in result:
             print(f"   Gap: {result['gap_score']}")
         
+        # EMA model specific scores
+        if 'ema_alignment_score' in result:
+            print(f"   EMA Alignment: {result['ema_alignment_score']}")
+        if 'ema_separation_score' in result:
+            print(f"   EMA Separation: {result['ema_separation_score']}")
+        if 'ema_momentum_score' in result:
+            print(f"   EMA Momentum: {result['ema_momentum_score']}")
+        if 'price_vs_emas_score' in result:
+            print(f"   Price vs EMAs: {result['price_vs_emas_score']}")
+        if 'ema_convergence_score' in result:
+            print(f"   EMA Convergence: {result['ema_convergence_score']}")
+        
+        if 'reason' in result:
+            print(f"   Reason: {result['reason']}")
+        
         print("✅ Model test completed successfully")
         
     except Exception as e:
         print(f"❌ Error testing model: {str(e)}")
+        import traceback
+        traceback.print_exc()
 
 def main():
     """Main function"""

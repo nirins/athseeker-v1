@@ -193,7 +193,7 @@ class StockDownloader:
             self.handle_cross_signals(symbol_with_market, market_code, moving_averages, candle_metrics)
         
         if detections['ath']:
-            self.handle_ath_detection(symbol_with_market, market_code, price_data)
+            self.handle_ath_detection(symbol_with_market, market_code, price_data, moving_averages)
     
     def filter_data_by_retention(self, sorted_data: List[Dict], market_code: str) -> List[Dict]:
         """
@@ -318,7 +318,7 @@ class StockDownloader:
         else:
             logger.info(f"{cross_info['signal']} found but older than 30 days ({days_ago} days ago), not saving to separate table")
     
-    def handle_ath_detection(self, symbol_with_market: str, market_code: str, price_data: List[Dict]):
+    def handle_ath_detection(self, symbol_with_market: str, market_code: str, price_data: List[Dict], moving_averages: List[Dict] = None):
         """
         Handle ATH detection and saving
         
@@ -326,13 +326,17 @@ class StockDownloader:
             symbol_with_market: Symbol with market code
             market_code: Market code
             price_data: List of price records
+            moving_averages: List of moving average records (optional)
         """
         ath_detection = self.ath_detector.check_ath_detection(symbol_with_market, market_code, price_data)
         
         if ath_detection:
+            # Merge price data with moving averages for beauty score calculation
+            merged_data = self._merge_price_and_ema_data(price_data, moving_averages)
+            
             # Calculate breakout beauty score
             beauty_analysis = self.breakout_analyzer.calculate_breakout_beauty_score(
-                price_data, 
+                merged_data, 
                 ath_detection['detection_date'], 
                 ath_detection['ath_price']
             )
@@ -342,3 +346,49 @@ class StockDownloader:
             
             logger.info(f"ATH detected: {symbol_with_market} - ${ath_detection['ath_price']} (+{ath_detection['ath_percentage_gain']}%) - Beauty: {beauty_analysis.get('beauty_score', 'N/A')} ({beauty_analysis.get('grade', 'N/A')})")
             self.storage.save_ath_detection(ath_detection)
+    
+    def _merge_price_and_ema_data(self, price_data: List[Dict], moving_averages: List[Dict] = None) -> List[Dict]:
+        """
+        Merge price data with EMA data for beauty score calculation
+        
+        Args:
+            price_data: List of price records
+            moving_averages: List of moving average records
+            
+        Returns:
+            List of merged records with both price and EMA data
+        """
+        if not moving_averages:
+            logger.warning("No moving averages data available for beauty score calculation")
+            return price_data
+        
+        # Create a lookup dictionary for EMAs by date
+        ema_lookup = {record['date']: record for record in moving_averages}
+        
+        # Merge price data with EMA data
+        merged_data = []
+        for price_record in price_data:
+            merged_record = price_record.copy()
+            
+            # Add EMA data if available for this date
+            date = price_record['date']
+            if date in ema_lookup:
+                ema_record = ema_lookup[date]
+                
+                # Convert Decimal to float for EMA values
+                for ema_field in ['ema_7', 'ema_30', 'ema_50', 'ema_200']:
+                    if ema_field in ema_record and ema_record[ema_field] is not None:
+                        merged_record[ema_field] = float(ema_record[ema_field])
+                    else:
+                        merged_record[ema_field] = None
+            else:
+                # No EMA data for this date
+                merged_record['ema_7'] = None
+                merged_record['ema_30'] = None
+                merged_record['ema_50'] = None
+                merged_record['ema_200'] = None
+            
+            merged_data.append(merged_record)
+        
+        logger.info(f"Merged {len(price_data)} price records with {len(moving_averages)} EMA records")
+        return merged_data
