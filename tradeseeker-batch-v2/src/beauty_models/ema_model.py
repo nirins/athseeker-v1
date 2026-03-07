@@ -20,11 +20,12 @@ class EMABeautyModel(BaseBeautyModel):
         
         # Component weights for EMA-based scoring
         self.weights = {
-            'ema_alignment': 0.40,      # 40% - EMA hierarchy alignment (7>30>50>200)
-            'ema_separation': 0.15,     # 15% - Distance between EMAs (reduced from 25%)
-            'ema_momentum': 0.10,       # 10% - EMA slope/momentum (reduced from 20%)
-            'price_vs_emas': 0.30,      # 30% - Price position relative to EMAs (increased from 10%)
-            'ema_convergence': 0.05     # 5% - EMA convergence/divergence patterns
+            'ema_alignment': 0.30,          # 30% - EMA hierarchy alignment (7>30>50>200) - reduced from 40%
+            'ema_separation': 0.15,         # 15% - Distance between EMAs
+            'ema_momentum': 0.10,           # 10% - EMA slope/momentum
+            'price_vs_emas': 0.25,          # 25% - Price position relative to EMAs - reduced from 30%
+            'ema_convergence': 0.05,        # 5% - EMA convergence/divergence patterns
+            'price_above_ema50': 0.15       # 15% - Price above EMA 50 over 6 months (new weighted component)
         }
     
     def calculate_beauty_score(self, pre_breakout: List[Dict], breakout_day: Dict, 
@@ -41,10 +42,12 @@ class EMABeautyModel(BaseBeautyModel):
             ema_momentum_score = self._calculate_ema_momentum_score(pre_breakout, breakout_day, post_breakout)
             price_vs_emas_score = self._calculate_price_vs_emas_score(pre_breakout, breakout_day, post_breakout)
             ema_convergence_score = self._calculate_ema_convergence_score(pre_breakout, breakout_day, post_breakout)
+            price_above_ema50_score = self._calculate_price_above_ema50_score(pre_breakout, breakout_day, post_breakout)
             
             self.logger.info(f"EMA component scores: alignment={ema_alignment_score}, "
                            f"separation={ema_separation_score}, momentum={ema_momentum_score}, "
-                           f"price_vs_emas={price_vs_emas_score}, convergence={ema_convergence_score}")
+                           f"price_vs_emas={price_vs_emas_score}, convergence={ema_convergence_score}, "
+                           f"price_above_ema50={price_above_ema50_score}")
             
             # Weighted beauty score (0-100)
             beauty_score = (
@@ -52,7 +55,8 @@ class EMABeautyModel(BaseBeautyModel):
                 ema_separation_score * self.weights['ema_separation'] +
                 ema_momentum_score * self.weights['ema_momentum'] +
                 price_vs_emas_score * self.weights['price_vs_emas'] +
-                ema_convergence_score * self.weights['ema_convergence']
+                ema_convergence_score * self.weights['ema_convergence'] +
+                price_above_ema50_score * self.weights['price_above_ema50']
             )
             
             result = {
@@ -62,6 +66,7 @@ class EMABeautyModel(BaseBeautyModel):
                 'ema_momentum_score': round(ema_momentum_score, 1),
                 'price_vs_emas_score': round(price_vs_emas_score, 1),
                 'ema_convergence_score': round(ema_convergence_score, 1),
+                'price_above_ema50_score': round(price_above_ema50_score, 1),
                 'grade': self._get_beauty_grade(beauty_score),
                 'model_name': self.model_name,
                 'model_version': self.version
@@ -74,32 +79,75 @@ class EMABeautyModel(BaseBeautyModel):
             self.logger.error(f"Error calculating EMA beauty score: {str(e)}")
             return {'beauty_score': 0, 'reason': f'Error: {str(e)}'}
     
+    def _calculate_price_above_ema50_score(self, pre_breakout: List[Dict], breakout_day: Dict, 
+                                          post_breakout: List[Dict]) -> float:
+        """
+        Calculate score for price above EMA 50 over 6-month period (0-100)
+        
+        Returns:
+            Score from 0-100 based on percentage of time price is above EMA 50
+        """
+        # Combine all data and focus on 6 months (approximately 130 trading days)
+        all_data = pre_breakout + [breakout_day] + post_breakout
+        six_month_data = all_data[-130:] if len(all_data) >= 130 else all_data
+        
+        above_count = 0
+        total_count = 0
+        
+        for record in six_month_data:
+            close_price = float(record.get('close', 0))
+            ema_50 = record.get('ema_50')
+            
+            if close_price > 0 and ema_50 is not None and float(ema_50) > 0:
+                total_count += 1
+                if close_price > float(ema_50):
+                    above_count += 1
+        
+        if total_count == 0:
+            return 0.0  # No valid data
+        
+        percentage_above = (above_count / total_count) * 100
+        
+        # Convert percentage to score (0-100)
+        # 100% above EMA 50 = 100 score
+        # 90% above EMA 50 = 90 score
+        # 70% above EMA 50 = 70 score
+        # 50% above EMA 50 = 50 score
+        # 0% above EMA 50 = 0 score
+        score = percentage_above
+        
+        self.logger.info(f"Price above EMA 50 (6-month): {percentage_above:.1f}% above, score: {score:.1f}")
+        
+        return score
     def get_model_info(self) -> Dict[str, Any]:
         """Get EMA model information"""
         return {
             'name': self.model_name,
             'version': self.version,
-            'description': 'EMA-based beauty score model emphasizing price position and EMA alignment with recent data emphasis',
+            'description': 'EMA-based beauty score model emphasizing price position and EMA alignment with recent data emphasis. Requires price above EMA 50.',
             'weights': self.weights.copy(),
             'components': [
                 'ema_alignment_score',
                 'ema_separation_score', 
                 'ema_momentum_score',
                 'price_vs_emas_score',
-                'ema_convergence_score'
+                'ema_convergence_score',
+                'price_above_ema50_score'
             ],
             'ema_periods': [7, 30, 50, 200],
             'created_date': '2024-03-07',
             'is_trainable': True,
             'features': [
-                'EMA hierarchy alignment (7>30>50>200) - weighted toward last 21 days (40%)',
-                'Price position vs EMAs - weighted toward last 21 days (30%)',
+                'EMA hierarchy alignment (7>30>50>200) - weighted toward last 21 days (30%)',
+                'Price position vs EMAs - weighted toward last 21 days (25%)',
+                'Price above EMA 50 over 6 months - percentage-based scoring (15%)',
                 'EMA separation distances - weighted toward last 21 days (15%)',
                 'EMA slope momentum (10%)',
                 'EMA convergence patterns (5%)'
             ],
-            'weighting_strategy': 'Recent 21 days weighted more heavily (1.0x recent, 0.3x oldest). Emphasis on price position relative to EMAs.',
-            'rationale': 'Price above EMAs is the most direct indicator of bullish momentum after EMA alignment'
+            'weighting_strategy': 'Recent 21 days weighted more heavily (1.0x recent, 0.3x oldest). Price above EMA 50 uses 6-month percentage.',
+            'rationale': 'Price above EMAs is the most direct indicator of bullish momentum after EMA alignment. Price above EMA 50 over 6 months shows sustained medium-term strength.',
+            'filters': []
         }
     
     def _calculate_time_weights(self, num_days: int) -> List[float]:
