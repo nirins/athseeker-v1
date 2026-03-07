@@ -21,9 +21,9 @@ class EMABeautyModel(BaseBeautyModel):
         # Component weights for EMA-based scoring
         self.weights = {
             'ema_alignment': 0.40,      # 40% - EMA hierarchy alignment (7>30>50>200)
-            'ema_separation': 0.25,     # 25% - Distance between EMAs (wider = stronger trend)
-            'ema_momentum': 0.20,       # 20% - EMA slope/momentum (rising EMAs)
-            'price_vs_emas': 0.10,      # 10% - Price position relative to EMAs
+            'ema_separation': 0.15,     # 15% - Distance between EMAs (reduced from 25%)
+            'ema_momentum': 0.10,       # 10% - EMA slope/momentum (reduced from 20%)
+            'price_vs_emas': 0.30,      # 30% - Price position relative to EMAs (increased from 10%)
             'ema_convergence': 0.05     # 5% - EMA convergence/divergence patterns
         }
     
@@ -79,7 +79,7 @@ class EMABeautyModel(BaseBeautyModel):
         return {
             'name': self.model_name,
             'version': self.version,
-            'description': 'EMA-based beauty score model focusing on moving average relationships with recent data emphasis',
+            'description': 'EMA-based beauty score model emphasizing price position and EMA alignment with recent data emphasis',
             'weights': self.weights.copy(),
             'components': [
                 'ema_alignment_score',
@@ -92,13 +92,14 @@ class EMABeautyModel(BaseBeautyModel):
             'created_date': '2024-03-07',
             'is_trainable': True,
             'features': [
-                'EMA hierarchy alignment (7>30>50>200) - weighted toward last 21 days',
-                'EMA separation distances - weighted toward last 21 days',
-                'EMA slope momentum',
-                'Price position vs EMAs - weighted toward last 21 days',
-                'EMA convergence patterns'
+                'EMA hierarchy alignment (7>30>50>200) - weighted toward last 21 days (40%)',
+                'Price position vs EMAs - weighted toward last 21 days (30%)',
+                'EMA separation distances - weighted toward last 21 days (15%)',
+                'EMA slope momentum (10%)',
+                'EMA convergence patterns (5%)'
             ],
-            'weighting_strategy': 'Recent 21 days weighted more heavily (1.0x recent, 0.3x oldest)'
+            'weighting_strategy': 'Recent 21 days weighted more heavily (1.0x recent, 0.3x oldest). Emphasis on price position relative to EMAs.',
+            'rationale': 'Price above EMAs is the most direct indicator of bullish momentum after EMA alignment'
         }
     
     def _get_ema_values(self, record: Dict) -> Dict[str, float]:
