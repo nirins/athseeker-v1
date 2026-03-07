@@ -282,6 +282,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     // Create a map to store results and maintain order
     const stockDataMap = new Map<string, StockData>();
     let completedCount = 0;
+    const totalSymbols = uniqueSymbols.length;
     
     uniqueSymbols.forEach((symbol, index) => {
       this.apiService.getStockData(symbol).pipe(
@@ -299,8 +300,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
           stockDataMap.set(symbol, stockData);
         }
         
-        // Update the array maintaining the original order
-        this.updateStockDataArrayInOrder(uniqueSymbols, stockDataMap);
+        // Only update when all requests are complete to maintain proper order
+        if (completedCount === totalSymbols) {
+          this.updateStockDataArrayInOrder(uniqueSymbols, stockDataMap);
+        }
       });
     });
   }
@@ -309,26 +312,32 @@ export class DashboardComponent implements OnInit, OnDestroy {
    * Update stockDataArray maintaining the original symbol order
    */
   private updateStockDataArrayInOrder(originalSymbols: string[], stockDataMap: Map<string, StockData>): void {
-    // Build the complete ordered array from scratch each time
-    const completeOrderedArray: StockData[] = [];
+    // Build ordered array for the current page only
+    const currentPageOrderedData: StockData[] = [];
     
     // Debug: Log the original symbol order
     console.log('Original symbols order from API:', originalSymbols.slice(0, 5));
     
-    // Go through ALL symbols in original order and add any that are available in the map
+    // Go through symbols in original order and add any that are available in the map
     for (const symbol of originalSymbols) {
       if (stockDataMap.has(symbol)) {
         const stockData = stockDataMap.get(symbol)!;
-        completeOrderedArray.push(stockData);
+        // Check if this symbol already exists in the current array to prevent duplicates
+        const existingIndex = this.stockDataArray.findIndex(data => data.symbol === stockData.symbol);
+        if (existingIndex === -1) {
+          currentPageOrderedData.push(stockData);
+        }
       }
     }
     
     // Debug: Log the ordered stock data
-    console.log('Ordered stock data symbols:', completeOrderedArray.map(s => s.symbol).slice(0, 5));
+    console.log('Ordered stock data symbols:', currentPageOrderedData.map(s => s.symbol).slice(0, 5));
     
-    // Replace the entire array with the properly ordered one
-    this.stockDataArray = completeOrderedArray;
-    console.log('Final stockDataArray order (first 5):', this.stockDataArray.map(s => s.symbol).slice(0, 5));
+    // Append new ordered data to existing array (for pagination)
+    if (currentPageOrderedData.length > 0) {
+      this.stockDataArray = [...this.stockDataArray, ...currentPageOrderedData];
+      console.log('Final stockDataArray order (first 5):', this.stockDataArray.map(s => s.symbol).slice(0, 5));
+    }
   }
 
   onMarketChange(market: string): void {

@@ -626,13 +626,14 @@ export class StockChartComponent implements OnInit, OnChanges, OnDestroy, AfterV
   private getLatest360Days(): { prices: any[], emas: any } {
     const maxDays = 360;
     
-    // Sort prices by date (newest first) and take the latest 360 days
-    const sortedPrices = [...this.stockData.prices]
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, maxDays)
-      .reverse(); // Reverse to get chronological order (oldest to newest)
+    // For sparse data, use a different approach - take the last N records instead of date-based filtering
+    const totalRecords = this.stockData.prices.length;
+    const recordsToShow = Math.min(maxDays, totalRecords);
+    
+    // Take the last N records (most recent data)
+    const sortedPrices = this.stockData.prices.slice(-recordsToShow);
 
-    // Filter EMA data to match the same date range
+    // Filter EMA data to match the same records
     const filteredEmas: any = {
       ema7: [] as (number | null)[],
       ema30: [] as (number | null)[],
@@ -641,33 +642,14 @@ export class StockChartComponent implements OnInit, OnChanges, OnDestroy, AfterV
     };
 
     if (this.stockData.emas) {
-      // Create a map of dates to their indices in the original arrays
-      const originalPrices = this.stockData.prices;
-      const dateToIndexMap = new Map<string, number>();
-      originalPrices.forEach((price, index) => {
-        dateToIndexMap.set(price.date, index);
-      });
-
-      // For each filtered price date, get the corresponding EMA values
-      sortedPrices.forEach(price => {
-        const originalIndex = dateToIndexMap.get(price.date);
-        if (originalIndex !== undefined) {
-          // Maintain array alignment - push the actual value (including null/undefined)
-          filteredEmas.ema7.push(this.stockData.emas.ema7[originalIndex] ?? null);
-          filteredEmas.ema30.push(this.stockData.emas.ema30[originalIndex] ?? null);
-          filteredEmas.ema50.push(this.stockData.emas.ema50[originalIndex] ?? null);
-          filteredEmas.ema200.push(this.stockData.emas.ema200[originalIndex] ?? null);
-        } else {
-          // If date not found, push null
-          filteredEmas.ema7.push(null);
-          filteredEmas.ema30.push(null);
-          filteredEmas.ema50.push(null);
-          filteredEmas.ema200.push(null);
-        }
-      });
+      // Take the corresponding EMA values for the same record range
+      filteredEmas.ema7 = this.stockData.emas.ema7.slice(-recordsToShow);
+      filteredEmas.ema30 = this.stockData.emas.ema30.slice(-recordsToShow);
+      filteredEmas.ema50 = this.stockData.emas.ema50.slice(-recordsToShow);
+      filteredEmas.ema200 = this.stockData.emas.ema200.slice(-recordsToShow);
     }
 
-    console.log(`Filtered to latest ${sortedPrices.length} days for ${this.stockData.symbol}`, {
+    console.log(`Filtered to latest ${sortedPrices.length} records for ${this.stockData.symbol}`, {
       prices: sortedPrices.length,
       ema7: filteredEmas.ema7.length,
       ema30: filteredEmas.ema30.length,
