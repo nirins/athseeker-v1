@@ -1,8 +1,8 @@
-// Landing Component - Optimized
+// Landing Component - Light Theme
 .landing-container {
   min-height: 100vh;
-  background: #1a1a1a;
-  color: #fff;
+  background: #ffffff;
+  color: #1f2937;
   font-family: 'Inter', sans-serif;
 }
 
@@ -106,10 +106,10 @@
 
 // Content Sections
 section:not(.hero) {
-  background: #2a2a2a;
+  background: #f8fafc;
   padding: 100px 0;
-  color: #fff;
-  &:nth-child(even) { background: #1f1f1f; }
+  color: #1f2937;
+  &:nth-child(even) { background: #ffffff; }
 }
 
 h2 {
@@ -125,10 +125,10 @@ h2 {
   font-size: 1.25rem;
   text-align: center;
   margin: 0 0 3rem 0;
-  color: #9ca3af;
+  color: #6b7280;
   font-weight: 400;
   line-height: 1.4;
-  opacity: 0.8;
+  opacity: 0.9;
 }
 
 // Credibility Stats
@@ -138,8 +138,8 @@ h2 {
   gap: 2rem;
   margin: 0 0 4rem 0;
   padding: 2rem 0;
-  border-top: 1px solid rgba(255,255,255,0.1);
-  border-bottom: 1px solid rgba(255,255,255,0.1);
+  border-top: 1px solid rgba(31, 41, 55, 0.1);
+  border-bottom: 1px solid rgba(31, 41, 55, 0.1);
 }
 
 .stat-item {
@@ -153,7 +153,7 @@ h2 {
   }
   .stat-label {
     font-size: 0.875rem;
-    color: #9ca3af;
+    color: #6b7280;
     font-weight: 400;
     line-height: 1.4;
   }
@@ -173,16 +173,18 @@ h2 {
 .feature-card {
   text-align: center;
   padding: 4rem 2.5rem;
-  background: #3a3a3a;
-  border-radius: 4px;
-  border: 1px solid rgba(255,255,255,0.1);
-  border-left: 2px solid #10b981;
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  border-left: 3px solid #10b981;
   transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
   &:hover {
-    transform: translateY(-1px);
-    background: #404040;
-    border-color: rgba(255,255,255,0.15);
+    transform: translateY(-2px);
+    background: #f9fafb;
+    border-color: #d1d5db;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   }
 
   h3 {
@@ -191,6 +193,7 @@ h2 {
     margin: 0;
     letter-spacing: -0.01em;
     line-height: 1.3;
+    color: #1f2937;
   }
 }
 
@@ -230,18 +233,19 @@ h2 {
   display: flex;
   align-items: center;
   padding: 2rem 1.5rem;
-  background: #3a3a3a;
-  border-radius: 4px;
-  border: 1px solid rgba(255,255,255,0.1);
-  border-left: 2px solid #10b981;
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  border-left: 3px solid #10b981;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
-  p { font-size: 0.95rem; margin: 0; font-weight: 400; }
+  p { font-size: 0.95rem; margin: 0; font-weight: 400; color: #374151; }
 }
 
 .momentum-message {
   text-align: center;
   font-size: 1.3rem;
-  color: #e5e7eb;
+  color: #374151;
   
   p:last-child { color: #10b981; font-size: 1.5rem; }
 }
@@ -258,18 +262,19 @@ h2 {
   display: flex;
   align-items: center;
   padding: 2rem 1.5rem;
-  background: #3a3a3a;
-  border-radius: 4px;
-  border: 1px solid rgba(255,255,255,0.1);
-  border-left: 2px solid #f87171;
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  border-left: 3px solid #f87171;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
-  p { font-size: 0.95rem; margin: 0; font-weight: 400; }
+  p { font-size: 0.95rem; margin: 0; font-weight: 400; color: #374151; }
 }
 
 .problem-message {
   text-align: center;
   font-size: 1.3rem;
-  color: #e5e7eb;
+  color: #374151;
   
   p:last-child { color: #10b981; font-size: 1.5rem; }
 }
@@ -291,12 +296,12 @@ h2 {
     font-size: 1.5rem;
     font-weight: 700;
     margin: 0 0 1rem 0;
-    color: #ffffff;
+    color: #1f2937;
   }
   
   p {
     font-size: 1.125rem;
-    color: #9ca3af;
+    color: #6b7280;
     margin: 0;
     line-height: 1.5;
   }
@@ -320,14 +325,17 @@ h2 {
 .success-item {
   text-align: center;
   padding: 4rem 3rem;
-  background: #3a3a3a;
-  border-radius: 8px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
 
   &:hover {
     transform: translateY(-4px);
-    background: #404040;
+    background: #f9fafb;
     box-shadow: 0 12px 40px rgba(16, 185, 129, 0.15);
+    border-color: #d1d5db;
   }
 
   h3 {
@@ -342,7 +350,7 @@ h2 {
     display: block;
     font-size: 0.875rem;
     font-weight: 500;
-    color: #9ca3af;
+    color: #6b7280;
     margin: 0 0 2rem 0;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -352,7 +360,7 @@ h2 {
     font-size: 1.125rem;
     margin: 0;
     line-height: 1.6;
-    color: #e5e7eb;
+    color: #374151;
   }
 }
 
@@ -376,17 +384,18 @@ h2 {
 .philosophy-item {
   text-align: center;
   padding: 3rem 2rem;
-  background: #3a3a3a;
-  border-radius: 4px;
-  border: 1px solid rgba(255,255,255,0.1);
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 
-  p { font-size: 1.3rem; margin: 0; }
+  p { font-size: 1.3rem; margin: 0; color: #374151; }
 }
 
 .philosophy-conclusion {
   text-align: center;
   
-  p:first-child { font-size: 1.2rem; color: #e5e7eb; margin-bottom: 1rem; }
+  p:first-child { font-size: 1.2rem; color: #374151; margin-bottom: 1rem; }
 }
 
 .philosophy-tagline {
