@@ -102,6 +102,29 @@ class EMABeautyModel(BaseBeautyModel):
             'rationale': 'Price above EMAs is the most direct indicator of bullish momentum after EMA alignment'
         }
     
+    def _calculate_time_weights(self, num_days: int) -> List[float]:
+        """
+        Calculate time-based weights for recent data emphasis
+        
+        Args:
+            num_days: Number of days to calculate weights for
+            
+        Returns:
+            List of weights where index 0 = most recent day (weight 1.0)
+            and index num_days-1 = oldest day (weight 0.3)
+        """
+        weights = []
+        
+        for i in range(num_days):
+            # position_from_end: 0 = most recent, num_days-1 = oldest
+            position_from_end = i
+            
+            # Weight formula: recent data gets higher weight
+            weight = 1.0 - (position_from_end * 0.7 / max(1, num_days - 1))
+            weights.append(weight)
+        
+        return weights
+    
     def _get_ema_values(self, record: Dict) -> Dict[str, float]:
         """Extract EMA values from a price record, handling None values"""
         return {
@@ -164,21 +187,20 @@ class EMABeautyModel(BaseBeautyModel):
             
             alignment_score = (score / total_checks) * 100
             alignment_scores.append(alignment_score)
-            
-            # Weight calculation: more recent data gets higher weight
-            # Most recent day gets weight 1.0, oldest day gets weight 0.3
-            position_from_end = len(recent_data) - i - 1  # 0 = most recent
-            weight = 1.0 - (position_from_end * 0.7 / max(1, len(recent_data) - 1))
-            weights.append(weight)
+        
+        # Calculate time-based weights (most recent = highest weight)
+        weights = self._calculate_time_weights(len(recent_data))
         
         if not alignment_scores:
             return 50  # Neutral score if no valid data
         
         # Calculate weighted average (recent data weighted more heavily)
-        weighted_sum = sum(score * weight for score, weight in zip(alignment_scores, weights))
-        total_weight = sum(weights)
-        
-        weighted_average = weighted_sum / total_weight if total_weight > 0 else 50
+        if alignment_scores and len(alignment_scores) == len(weights):
+            weighted_sum = sum(score * weight for score, weight in zip(alignment_scores, weights))
+            total_weight = sum(weights)
+            weighted_average = weighted_sum / total_weight if total_weight > 0 else 50
+        else:
+            weighted_average = 50
         
         self.logger.info(f"EMA alignment: {len(alignment_scores)} periods analyzed, "
                         f"recent weight emphasis, score: {weighted_average:.1f}")
@@ -199,7 +221,6 @@ class EMABeautyModel(BaseBeautyModel):
         recent_data = all_data[-21:] if len(all_data) >= 21 else all_data
         
         separation_scores = []
-        weights = []
         
         for i, record in enumerate(recent_data):
             emas = self._get_ema_values(record)
@@ -243,20 +264,20 @@ class EMABeautyModel(BaseBeautyModel):
                     score = avg_separation * 80
                 
                 separation_scores.append(min(100, score))
-                
-                # Weight calculation: more recent data gets higher weight
-                position_from_end = len(recent_data) - i - 1  # 0 = most recent
-                weight = 1.0 - (position_from_end * 0.7 / max(1, len(recent_data) - 1))
-                weights.append(weight)
+        
+        # Calculate time-based weights (most recent = highest weight)
+        weights = self._calculate_time_weights(len(recent_data))
         
         if not separation_scores:
             return 50  # Neutral score if no valid data
         
         # Calculate weighted average (recent data weighted more heavily)
-        weighted_sum = sum(score * weight for score, weight in zip(separation_scores, weights))
-        total_weight = sum(weights)
-        
-        weighted_average = weighted_sum / total_weight if total_weight > 0 else 50
+        if separation_scores and len(separation_scores) == len(weights):
+            weighted_sum = sum(score * weight for score, weight in zip(separation_scores, weights))
+            total_weight = sum(weights)
+            weighted_average = weighted_sum / total_weight if total_weight > 0 else 50
+        else:
+            weighted_average = 50
         
         self.logger.info(f"EMA separation: {len(separation_scores)} periods analyzed, "
                         f"recent weight emphasis, score: {weighted_average:.1f}")
@@ -330,7 +351,6 @@ class EMABeautyModel(BaseBeautyModel):
         recent_data = all_data[-21:] if len(all_data) >= 21 else all_data
         
         position_scores = []
-        weights = []
         
         for i, record in enumerate(recent_data):
             emas = self._get_ema_values(record)
@@ -355,20 +375,20 @@ class EMABeautyModel(BaseBeautyModel):
             # Score based on how many EMAs price is above
             score = (above_count / total_emas) * 100
             position_scores.append(score)
-            
-            # Weight calculation: more recent data gets higher weight
-            position_from_end = len(recent_data) - i - 1  # 0 = most recent
-            weight = 1.0 - (position_from_end * 0.7 / max(1, len(recent_data) - 1))
-            weights.append(weight)
+        
+        # Calculate time-based weights (most recent = highest weight)
+        weights = self._calculate_time_weights(len(recent_data))
         
         if not position_scores:
             return 50
         
         # Calculate weighted average (recent data weighted more heavily)
-        weighted_sum = sum(score * weight for score, weight in zip(position_scores, weights))
-        total_weight = sum(weights)
-        
-        weighted_average = weighted_sum / total_weight if total_weight > 0 else 50
+        if position_scores and len(position_scores) == len(weights):
+            weighted_sum = sum(score * weight for score, weight in zip(position_scores, weights))
+            total_weight = sum(weights)
+            weighted_average = weighted_sum / total_weight if total_weight > 0 else 50
+        else:
+            weighted_average = 50
         
         self.logger.info(f"Price vs EMAs: {len(position_scores)} periods analyzed, "
                         f"recent weight emphasis, score: {weighted_average:.1f}")
