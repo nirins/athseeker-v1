@@ -1,42 +1,45 @@
 <div class="dashboard-container">
   <div class="dashboard-header">
     <div class="controls">
-      <app-strategy-selector
-        [selectedStrategy]="selectedStrategy"
-        (strategyChange)="onStrategyChange($event)">
-      </app-strategy-selector>
-      
-      <app-market-selector
-        [selectedMarket]="selectedMarket"
-        (marketChange)="onMarketChange($event)">
-      </app-market-selector>
-      
-      <app-chart-display-mode-selector
-        [selectedMode]="selectedDisplayMode"
-        (modeChange)="onDisplayModeChange($event)">
-      </app-chart-display-mode-selector>
-      
-      <app-chart-type-selector
-        [selectedType]="selectedChartType"
-        (typeChange)="onChartTypeChange($event)">
-      </app-chart-type-selector>
-      
-      <button 
-        class="refresh-button"
-        (click)="onRefresh()"
-        [disabled]="isLoading">
-        <span *ngIf="!isLoading">Refresh</span>
-        <span *ngIf="isLoading">Refreshing...</span>
-      </button>
+      <div class="left-controls">
+        <app-strategy-selector
+          [selectedStrategy]="selectedStrategy"
+          (strategyChange)="onStrategyChange($event)">
+        </app-strategy-selector>
+        
+        <app-market-selector
+          [selectedMarket]="selectedMarket"
+          (marketChange)="onMarketChange($event)">
+        </app-market-selector>
+        
+        <app-chart-display-mode-selector
+          [selectedMode]="selectedDisplayMode"
+          (modeChange)="onDisplayModeChange($event)">
+        </app-chart-display-mode-selector>
+        
+        <app-chart-type-selector
+          [selectedType]="selectedChartType"
+          (typeChange)="onChartTypeChange($event)">
+        </app-chart-type-selector>
+      </div>
 
-      <!-- Label Training Toggle -->
-      <button 
-        class="label-training-toggle"
-        (click)="toggleLabelMode()"
-        [class.active]="isLabelMode">
-        <span class="toggle-icon">🏷️</span>
-        {{ isLabelMode ? 'Exit Label Mode' : 'Label Training' }}
-      </button>
+      <div class="right-controls">
+        <button 
+          class="refresh-button"
+          (click)="onRefresh()"
+          [disabled]="isLoading">
+          <span *ngIf="!isLoading">Refresh</span>
+          <span *ngIf="isLoading">Refreshing...</span>
+        </button>
+
+        <!-- Label Training Toggle -->
+        <button 
+          class="label-training-toggle"
+          (click)="toggleLabelMode()"
+          [class.active]="isLabelMode">
+          {{ isLabelMode ? 'Exit' : 'Label' }}
+        </button>
+      </div>
     </div>
   </div>
 
