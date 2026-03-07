@@ -370,4 +370,23 @@ export class ApiService {
       originalError: error
     }));
   }
+
+  /**
+   * Save stock data with grade label to S3 for training dataset
+   */
+  saveStockDataByGrade(symbol: string, grade: string, stockData: StockData): Observable<any> {
+    const url = `${this.baseUrl}/training-data/save-by-grade`;
+    
+    const payload = {
+      symbol: symbol,
+      grade: grade,
+      stockData: stockData,
+      timestamp: new Date().toISOString()
+    };
+
+    return this.http.post<any>(url, payload).pipe(
+      retry(1),
+      catchError(this.handleError)
+    );
+  }
 }

@@ -54,21 +54,54 @@
     *ngIf="!isLoading && !error && stockDataArray.length > 0"
     [stockData]="stockDataArray"
     [displayMode]="selectedDisplayMode"
-    [chartType]="selectedChartType">
+    [chartType]="selectedChartType"
+    (gradeSelectionRequested)="onGradeSelectionRequested($event)">
   </app-chart-grid>
 
+  <!-- Grade Selection Popup -->
+  <div class="grade-selection-popup" *ngIf="showGradePopup">
+    <div class="popup-overlay" (click)="closeGradePopup()"></div>
+    <div class="popup-content">
+      <div class="popup-header">
+        <h3>Label Chart for Training Data</h3>
+        <p class="stock-symbol">{{ selectedStockForGrading?.symbol }}</p>
+        <button class="close-btn" (click)="closeGradePopup()">✕</button>
+      </div>
+      
+      <div class="grade-options">
+        <div 
+          *ngFor="let grade of availableGrades" 
+          class="grade-option"
+          (click)="selectGrade(grade)">
+          <span class="grade-badge" [class]="getGradeClass(grade.value)">
+            {{ grade.value }}
+          </span>
+          <span class="grade-text">{{ grade.label }}</span>
+        </div>
+      </div>
+      
+      <div class="popup-footer">
+        <button class="cancel-btn" (click)="closeGradePopup()">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Load More Button -->
-  <div class="load-more-container">
+  <div class="load-more-container" *ngIf="!isLoading && !error && stockDataArray.length > 0 && hasMoreData">
     <button 
       class="load-more-button"
+      [disabled]="isLoadingMore"
       (click)="loadMore()">
-      <span>Load More Stocks</span>
+      <span *ngIf="!isLoadingMore">Load More Stocks</span>
+      <span *ngIf="isLoadingMore">Loading...</span>
     </button>
     <p class="stock-count">Showing {{ stockDataArray.length }} of {{ allSymbols.length }} stocks</p>
   </div>
 
   <!-- End of Results Message -->
-  <div class="end-results-container">
+  <div class="end-results-container" *ngIf="!isLoading && !error && stockDataArray.length > 0 && !hasMoreData">
     <p class="stock-count">Total stocks loaded: {{ stockDataArray.length }}</p>
   </div>
 </div>

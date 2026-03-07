@@ -551,18 +551,21 @@ resource "aws_api_gateway_deployment" "tradeseeker_api" {
     aws_api_gateway_integration.openai_summary_lambda,
     aws_api_gateway_integration.stock_symbol_lambda,
     aws_api_gateway_integration.stock_history_lambda,
+    aws_api_gateway_integration.training_data_save_by_grade_lambda,
     aws_api_gateway_integration.golden_crosses_options,
     aws_api_gateway_integration.death_crosses_options,
     aws_api_gateway_integration.ath_options,
     aws_api_gateway_integration.openai_summary_options,
     aws_api_gateway_integration.stock_symbol_options,
     aws_api_gateway_integration.stock_history_options,
+    aws_api_gateway_integration.training_data_save_by_grade_options,
     aws_api_gateway_method_response.golden_crosses_get,
     aws_api_gateway_method_response.death_crosses_get,
     aws_api_gateway_method_response.ath_get,
     aws_api_gateway_method_response.openai_summary_get,
     aws_api_gateway_method_response.stock_symbol_get,
-    aws_api_gateway_method_response.stock_history_get
+    aws_api_gateway_method_response.stock_history_get,
+    aws_api_gateway_method_response.training_data_save_by_grade_post
   ]
 
   triggers = {
@@ -574,36 +577,43 @@ resource "aws_api_gateway_deployment" "tradeseeker_api" {
       aws_api_gateway_resource.stocks.id,
       aws_api_gateway_resource.stock_symbol.id,
       aws_api_gateway_resource.stock_history.id,
+      aws_api_gateway_resource.training_data.id,
+      aws_api_gateway_resource.training_data_save_by_grade.id,
       aws_api_gateway_method.golden_crosses_get.id,
       aws_api_gateway_method.death_crosses_get.id,
       aws_api_gateway_method.ath_get.id,
       aws_api_gateway_method.openai_summary_get.id,
       aws_api_gateway_method.stock_symbol_get.id,
       aws_api_gateway_method.stock_history_get.id,
+      aws_api_gateway_method.training_data_save_by_grade_post.id,
       aws_api_gateway_method.golden_crosses_options.id,
       aws_api_gateway_method.death_crosses_options.id,
       aws_api_gateway_method.ath_options.id,
       aws_api_gateway_method.openai_summary_options.id,
       aws_api_gateway_method.stock_symbol_options.id,
       aws_api_gateway_method.stock_history_options.id,
+      aws_api_gateway_method.training_data_save_by_grade_options.id,
       aws_api_gateway_integration.golden_crosses_lambda.id,
       aws_api_gateway_integration.death_crosses_lambda.id,
       aws_api_gateway_integration.ath_lambda.id,
       aws_api_gateway_integration.openai_summary_lambda.id,
       aws_api_gateway_integration.stock_symbol_lambda.id,
       aws_api_gateway_integration.stock_history_lambda.id,
+      aws_api_gateway_integration.training_data_save_by_grade_lambda.id,
       aws_api_gateway_integration.golden_crosses_options.id,
       aws_api_gateway_integration.death_crosses_options.id,
       aws_api_gateway_integration.ath_options.id,
       aws_api_gateway_integration.openai_summary_options.id,
       aws_api_gateway_integration.stock_symbol_options.id,
       aws_api_gateway_integration.stock_history_options.id,
+      aws_api_gateway_integration.training_data_save_by_grade_options.id,
       aws_api_gateway_method_response.golden_crosses_get.id,
       aws_api_gateway_method_response.death_crosses_get.id,
       aws_api_gateway_method_response.ath_get.id,
       aws_api_gateway_method_response.openai_summary_get.id,
       aws_api_gateway_method_response.stock_symbol_get.id,
       aws_api_gateway_method_response.stock_history_get.id,
+      aws_api_gateway_method_response.training_data_save_by_grade_post.id,
     ]))
   }
 
@@ -630,4 +640,96 @@ resource "aws_lambda_permission" "api_gateway" {
   function_name = aws_lambda_function.tradeseeker_api.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_api_gateway_rest_api.tradeseeker_api.execution_arn}/*/*"
+}
+# /training-data resource
+resource "aws_api_gateway_resource" "training_data" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  parent_id   = aws_api_gateway_rest_api.tradeseeker_api.root_resource_id
+  path_part   = "training-data"
+}
+
+# /training-data/save-by-grade resource
+resource "aws_api_gateway_resource" "training_data_save_by_grade" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  parent_id   = aws_api_gateway_resource.training_data.id
+  path_part   = "save-by-grade"
+}
+
+# POST method for /training-data/save-by-grade
+resource "aws_api_gateway_method" "training_data_save_by_grade_post" {
+  rest_api_id   = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id   = aws_api_gateway_resource.training_data_save_by_grade.id
+  http_method   = "POST"
+  authorization = "NONE"
+}
+
+# Lambda integration for /training-data/save-by-grade POST
+resource "aws_api_gateway_integration" "training_data_save_by_grade_lambda" {
+  rest_api_id             = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id             = aws_api_gateway_resource.training_data_save_by_grade.id
+  http_method             = aws_api_gateway_method.training_data_save_by_grade_post.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.tradeseeker_api.invoke_arn
+}
+
+# Method response for /training-data/save-by-grade POST
+resource "aws_api_gateway_method_response" "training_data_save_by_grade_post" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id = aws_api_gateway_resource.training_data_save_by_grade.id
+  http_method = aws_api_gateway_method.training_data_save_by_grade_post.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = true
+  }
+}
+
+# CORS configuration for /training-data/save-by-grade
+resource "aws_api_gateway_method" "training_data_save_by_grade_options" {
+  rest_api_id   = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id   = aws_api_gateway_resource.training_data_save_by_grade.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "training_data_save_by_grade_options" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id = aws_api_gateway_resource.training_data_save_by_grade.id
+  http_method = aws_api_gateway_method.training_data_save_by_grade_options.http_method
+  type        = "MOCK"
+
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "training_data_save_by_grade_options" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id = aws_api_gateway_resource.training_data_save_by_grade.id
+  http_method = aws_api_gateway_method.training_data_save_by_grade_options.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+
+  response_models = {
+    "application/json" = "Empty"
+  }
+}
+
+resource "aws_api_gateway_integration_response" "training_data_save_by_grade_options" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id = aws_api_gateway_resource.training_data_save_by_grade.id
+  http_method = aws_api_gateway_method.training_data_save_by_grade_options.http_method
+  status_code = aws_api_gateway_method_response.training_data_save_by_grade_options.status_code
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods" = "'POST,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
 }

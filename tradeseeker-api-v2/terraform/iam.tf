@@ -96,3 +96,43 @@ resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
   role       = aws_iam_role.lambda_execution.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
+# S3 write policy for training data
+resource "aws_iam_policy" "s3_training_data_write" {
+  name        = "${var.project_name}-${var.environment}-s3-training-data-write"
+  description = "Allow Lambda to write training data to S3"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:PutObject",
+          "s3:PutObjectAcl"
+        ]
+        Resource = [
+          "${aws_s3_bucket.training_data.arn}/*"
+        ]
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:ListBucket"
+        ]
+        Resource = [
+          aws_s3_bucket.training_data.arn
+        ]
+      }
+    ]
+  })
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-s3-training-data-write"
+  }
+}
+
+# Attach S3 training data write policy to Lambda role
+resource "aws_iam_role_policy_attachment" "lambda_s3_training_data" {
+  role       = aws_iam_role.lambda_execution.name
+  policy_arn = aws_iam_policy.s3_training_data_write.arn
+}

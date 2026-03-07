@@ -16,6 +16,11 @@ export const routes: Routes = [
     canActivate: [AuthGuard]
   },
   {
+    path: 'ath',
+    loadComponent: () => import('./features/ath/ath.component').then(m => m.AthComponent),
+    canActivate: [AuthGuard]
+  },
+  {
     path: 'stock/:symbol',
     loadComponent: () => import('./features/stock-detail/stock-detail.component').then(m => m.StockDetailComponent),
     canActivate: [AuthGuard]

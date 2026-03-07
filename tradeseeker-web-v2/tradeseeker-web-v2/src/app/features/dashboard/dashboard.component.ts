@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { Subject, of } from 'rxjs';
 import { switchMap, takeUntil, catchError } from 'rxjs/operators';
 import { ApiService } from '../../core/services/api.service';
@@ -17,6 +18,7 @@ import { ErrorMessageComponent } from '../../shared/components/error-message/err
   standalone: true,
   imports: [
     CommonModule,
+    RouterModule,
     MarketSelectorComponent,
     ChartDisplayModeSelectorComponent,
     ChartTypeSelectorComponent,
@@ -51,6 +53,23 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private refreshInProgress = false;
   private marketChange$ = new Subject<string>();
+
+  // Grade selection for training data
+  showGradePopup = false;
+  selectedStockForGrading: StockData | null = null;
+  availableGrades = [
+    { value: 'A+', label: 'A+ (90-100) - Exceptional' },
+    { value: 'A', label: 'A (85-89) - Excellent' },
+    { value: 'A-', label: 'A- (80-84) - Very Good' },
+    { value: 'B+', label: 'B+ (75-79) - Good' },
+    { value: 'B', label: 'B (70-74) - Above Average' },
+    { value: 'B-', label: 'B- (65-69) - Decent' },
+    { value: 'C+', label: 'C+ (60-64) - Average' },
+    { value: 'C', label: 'C (55-59) - Below Average' },
+    { value: 'C-', label: 'C- (50-54) - Poor' },
+    { value: 'D', label: 'D (40-49) - Very Poor' },
+    { value: 'F', label: 'F (0-39) - Failed' }
+  ];
 
   constructor(private apiService: ApiService) {}
 
@@ -400,5 +419,61 @@ export class DashboardComponent implements OnInit, OnDestroy {
     } else {
       return 'An error occurred while fetching data.';
     }
+  }
+
+  // Grade selection methods for training data
+  onGradeSelectionRequested(event: {symbol: string, stockData: StockData}): void {
+    this.selectedStockForGrading = event.stockData;
+    this.showGradePopup = true;
+  }
+
+  closeGradePopup(): void {
+    this.showGradePopup = false;
+    this.selectedStockForGrading = null;
+  }
+
+  selectGrade(grade: {value: string, label: string}): void {
+    if (!this.selectedStockForGrading) {
+      return;
+    }
+
+    // Call API to save stock data with grade to S3
+    this.apiService.saveStockDataByGrade(
+      this.selectedStockForGrading.symbol,
+      grade.value,
+      this.selectedStockForGrading
+    ).pipe(
+      takeUntil(this.destroy$),
+      catchError(error => {
+        console.error('Error saving stock data by grade:', error);
+        this.error = `Failed to save training data: ${error.message || 'Unknown error'}`;
+        return of(null);
+      })
+    ).subscribe(response => {
+      if (response) {
+        console.log(`Successfully saved ${this.selectedStockForGrading?.symbol} with grade ${grade.value}`);
+        // Show success feedback (optional)
+        // You could add a toast notification here
+      }
+    });
+
+    this.closeGradePopup();
+  }
+
+  getGradeClass(gradeValue: string): string {
+    const gradeClasses: {[key: string]: string} = {
+      'A+': 'grade-a-plus',
+      'A': 'grade-a',
+      'A-': 'grade-a-minus',
+      'B+': 'grade-b-plus',
+      'B': 'grade-b',
+      'B-': 'grade-b-minus',
+      'C+': 'grade-c-plus',
+      'C': 'grade-c',
+      'C-': 'grade-c-minus',
+      'D': 'grade-d',
+      'F': 'grade-f'
+    };
+    return gradeClasses[gradeValue] || 'grade-default';
   }
 }

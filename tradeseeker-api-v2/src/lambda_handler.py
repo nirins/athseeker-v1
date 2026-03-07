@@ -71,8 +71,19 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> dict:
         # Extract path parameters (handle None case)
         path_params = event.get('pathParameters') or {}
         
+        # Extract request body for POST requests
+        body = {}
+        if method == 'POST':
+            body_str = event.get('body', '')
+            if body_str:
+                try:
+                    body = json.loads(body_str)
+                except json.JSONDecodeError as e:
+                    logger.error(f"Request {request_id}: Invalid JSON in request body: {e}")
+                    return error_response("Invalid JSON in request body", 400)
+        
         # Route request to appropriate handler
-        response = route_request(method, path, query_params, path_params)
+        response = route_request(method, path, query_params, path_params, body)
         
         # Log response status
         logger.info(

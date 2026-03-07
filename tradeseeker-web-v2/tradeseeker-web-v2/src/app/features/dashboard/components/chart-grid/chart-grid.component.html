@@ -3,6 +3,7 @@
     *ngFor="let stock of stockData"
     [stockData]="stock"
     [displayMode]="displayMode"
-    [chartType]="chartType">
+    [chartType]="chartType"
+    (gradeSelectionRequested)="onGradeSelectionRequested($event)">
   </app-stock-chart>
 </div>

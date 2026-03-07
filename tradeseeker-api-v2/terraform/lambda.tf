@@ -20,6 +20,7 @@ resource "aws_lambda_function" "tradeseeker_api" {
       MARKET_CODE_CROSS_DATE_INDEX = var.market_code_cross_date_index
       EODHD_SECRET_NAME            = var.eodhd_secret_name
       OPENAI_SECRET_NAME           = aws_secretsmanager_secret.openai_api_key.name
+      TRAINING_DATA_BUCKET         = aws_s3_bucket.training_data.bucket
     }
   }
 

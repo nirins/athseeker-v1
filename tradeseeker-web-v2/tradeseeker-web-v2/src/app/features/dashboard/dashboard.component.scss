@@ -157,3 +157,209 @@
     max-width: 300px;
   }
 }
+
+// Grade Selection Popup Styles
+.grade-selection-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.popup-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+
+.popup-content {
+  position: relative;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  z-index: 1001;
+}
+
+.popup-header {
+  padding: 1.5rem 1.5rem 1rem 1.5rem;
+  border-bottom: 1px solid #e5e5e5;
+  position: relative;
+
+  h3 {
+    margin: 0 0 0.5rem 0;
+    font-size: 1.25rem;
+    color: #333;
+    font-weight: 600;
+  }
+
+  .stock-symbol {
+    margin: 0;
+    font-size: 1rem;
+    color: #666;
+    font-weight: 500;
+  }
+
+  .close-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #999;
+    cursor: pointer;
+    padding: 0.25rem;
+    line-height: 1;
+    
+    &:hover {
+      color: #666;
+    }
+  }
+}
+
+.grade-options {
+  padding: 1rem 1.5rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.grade-option {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  
+  &:hover {
+    background-color: #f8f9fa;
+  }
+}
+
+.grade-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2rem;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: white;
+  flex-shrink: 0;
+}
+
+.grade-text {
+  font-size: 0.875rem;
+  color: #333;
+}
+
+// Grade color classes
+.grade-a-plus {
+  background-color: #059669; // Emerald 600
+}
+
+.grade-a {
+  background-color: #10b981; // Emerald 500
+}
+
+.grade-a-minus {
+  background-color: #34d399; // Emerald 400
+}
+
+.grade-b-plus {
+  background-color: #3b82f6; // Blue 500
+}
+
+.grade-b {
+  background-color: #60a5fa; // Blue 400
+}
+
+.grade-b-minus {
+  background-color: #93c5fd; // Blue 300
+}
+
+.grade-c-plus {
+  background-color: #f59e0b; // Amber 500
+}
+
+.grade-c {
+  background-color: #fbbf24; // Amber 400
+}
+
+.grade-c-minus {
+  background-color: #fcd34d; // Amber 300
+}
+
+.grade-d {
+  background-color: #f97316; // Orange 500
+}
+
+.grade-f {
+  background-color: #ef4444; // Red 500
+}
+
+.grade-default {
+  background-color: #6b7280; // Gray 500
+}
+
+.popup-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e5e5e5;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cancel-btn {
+  padding: 0.5rem 1rem;
+  background-color: #6b7280;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  
+  &:hover {
+    background-color: #4b5563;
+  }
+}
+
+// Responsive adjustments for popup
+@media (max-width: 768px) {
+  .popup-content {
+    width: 95%;
+    margin: 1rem;
+  }
+  
+  .popup-header {
+    padding: 1rem;
+    
+    .close-btn {
+      top: 0.75rem;
+      right: 0.75rem;
+    }
+  }
+  
+  .grade-options {
+    padding: 0.75rem 1rem;
+  }
+  
+  .popup-footer {
+    padding: 0.75rem 1rem;
+  }
+}

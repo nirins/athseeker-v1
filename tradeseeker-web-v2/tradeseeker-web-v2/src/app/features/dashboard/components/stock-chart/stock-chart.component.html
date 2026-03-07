@@ -8,6 +8,14 @@
   </div>
 
   <div *ngIf="!isLoading && !error" class="chart-wrapper">
+    <!-- Chart Header with Symbol and Score Button -->
+    <div class="chart-header" *ngIf="!isDetailView">
+      <h3 class="chart-title" (click)="navigateToDetail()">{{ currentStockData.symbol }}</h3>
+      <button class="score-btn" (click)="showGradeSelectionPopup()" title="Score this chart for training data">
+        <span class="score-icon">⭐</span>
+      </button>
+    </div>
+    
     <div class="main-chart">
       <canvas 
         #chartCanvas

@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnChanges, OnDestroy, AfterViewInit, SimpleChanges, ViewChild, ElementRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, OnDestroy, AfterViewInit, SimpleChanges, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Chart, ChartConfiguration, registerables, TimeScale, LinearScale } from 'chart.js';
@@ -24,6 +24,7 @@ export class StockChartComponent implements OnInit, OnChanges, OnDestroy, AfterV
   @Input() displayMode: ChartDisplayMode = 'both';
   @Input() chartType: ChartType = 'candlestick';
   @Input() isDetailView: boolean = false; // New input to control clickability
+  @Output() gradeSelectionRequested = new EventEmitter<{symbol: string, stockData: StockData}>();
   @ViewChild('chartCanvas', { static: false }) chartCanvas!: ElementRef<HTMLCanvasElement>;
   @ViewChild('volumeCanvas', { static: false }) volumeCanvas!: ElementRef<HTMLCanvasElement>;
 
@@ -155,10 +156,7 @@ export class StockChartComponent implements OnInit, OnChanges, OnDestroy, AfterV
           },
           plugins: {
             title: {
-              display: !this.isDetailView, // Hide title in detail view
-              text: this.currentStockData.symbol,
-              font: { size: 16, weight: 'bold' },
-              color: this.isDetailView ? '#333' : '#666'
+              display: false // Always hide the chart.js title since we have our own header
             },
             legend: {
               display: false
@@ -687,34 +685,41 @@ export class StockChartComponent implements OnInit, OnChanges, OnDestroy, AfterV
   }
 
   /**
-   * Handle stock symbol click to navigate to detail view
+   * Navigate to stock detail page
    */
-  onStockClick(): void {
+  navigateToDetail(): void {
     if (!this.isDetailView && this.currentStockData?.symbol) {
-      // Open in new tab
-      const url = this.router.serializeUrl(
-        this.router.createUrlTree(['/stock', this.currentStockData.symbol])
-      );
-      window.open(url, '_blank');
+      this.router.navigate(['/stock', this.currentStockData.symbol]);
     }
   }
 
   /**
-   * Handle canvas click events - check if click is in title area
+   * Handle stock symbol click to navigate to detail view
+   */
+  onStockClick(): void {
+    this.navigateToDetail();
+  }
+
+  /**
+   * Show grade selection popup for manual labeling
+   */
+  showGradeSelectionPopup(): void {
+    // Emit event to parent component to show grade selection
+    this.gradeSelectionRequested.emit({
+      symbol: this.currentStockData?.symbol,
+      stockData: this.currentStockData
+    });
+  }
+
+  /**
+   * Handle canvas click events - navigate to detail page
    */
   onCanvasClick(event: MouseEvent): void {
-    if (this.isDetailView || !this.chart) {
+    if (this.isDetailView) {
       return;
     }
 
-    const rect = this.chartCanvas.nativeElement.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-
-    // Check if click is in the title area (top portion of chart)
-    // Chart.js title is typically in the top 50px of the chart
-    if (y <= 50) {
-      this.onStockClick();
-    }
+    // Navigate to detail page when clicking anywhere on the chart
+    this.navigateToDetail();
   }
 }

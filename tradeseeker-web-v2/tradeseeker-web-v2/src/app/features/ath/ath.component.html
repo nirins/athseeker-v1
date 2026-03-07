@@ -1,0 +1,94 @@
+<div class="ath-container">
+  <!-- Header -->
+  <div class="ath-header">
+    <div class="header-content">
+      <h1>All-Time High Stocks</h1>
+      <p class="subtitle">Stocks reaching new all-time highs</p>
+      
+      <!-- Controls -->
+      <div class="controls">
+        <!-- Market Filter -->
+        <div class="control-group">
+          <label for="market-select">Market:</label>
+          <select 
+            id="market-select" 
+            [(ngModel)]="selectedMarket" 
+            (change)="onMarketChange()"
+            class="market-select">
+            <option *ngFor="let market of markets" [value]="market.value">
+              {{ market.label }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Refresh Button -->
+        <button 
+          class="refresh-btn"
+          (click)="loadATHStocks()"
+          [disabled]="isLoading">
+          <span class="btn-icon">{{ isLoading ? '⏳' : '🔄' }}</span>
+          {{ isLoading ? 'Loading...' : 'Refresh' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grade Filter Popup -->
+  <!-- Removed grade filter popup -->
+
+  <!-- Results Summary -->
+  <div class="results-summary" *ngIf="!isLoading">
+    <div class="summary-stats">
+      <div class="stat-item">
+        <span class="stat-number">{{ athStocks.length }}</span>
+        <span class="stat-label">ATH Stocks</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">{{ selectedMarket }}</span>
+        <span class="stat-label">Market</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="isLoading">
+    <div class="loading-spinner"></div>
+    <p>Loading ATH stocks...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="!isLoading && athStocks.length === 0">
+    <div class="empty-icon">📈</div>
+    <h3>No ATH Stocks Found</h3>
+    <p>No stocks have reached all-time highs in the selected market recently.</p>
+    <button class="retry-btn" (click)="loadATHStocks()">Try Again</button>
+  </div>
+
+  <!-- ATH Stocks Table -->
+  <div class="ath-table-container" *ngIf="!isLoading && athStocks.length > 0">
+    <div class="table-wrapper">
+      <table class="ath-table">
+        <thead>
+          <tr>
+            <th>Symbol</th>
+            <th>Detection Date</th>
+            <th>ATH Price</th>
+            <th>Gain %</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let stock of athStocks; trackBy: trackBySymbol" class="stock-row">
+            <td class="symbol-cell">
+              <a [routerLink]="['/stock', stock.symbol]" class="symbol-link">
+                {{ stock.symbol }}
+              </a>
+            </td>
+            <td class="date-cell">{{ formatDate(stock.detection_date) }}</td>
+            <td class="price-cell">{{ formatCurrency(stock.ath_price) }}</td>
+            <td class="gain-cell positive">{{ formatPercentage(stock.ath_percentage_gain) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
