@@ -46,15 +46,15 @@ export class AuthService {
       if (token && this.isTokenValid(token) && !this.isTokenExpired(token)) {
         // Store the existing valid token
         // Check if we're in browser environment
-        if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
-          sessionStorage.setItem(this.TOKEN_KEY, token);
+        if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+          localStorage.setItem(this.TOKEN_KEY, token);
         }
         
         // Try to get user info
         try {
           const userAttributes = session.userSub;
-          if (userAttributes && typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
-            sessionStorage.setItem(this.USERNAME_KEY, userAttributes);
+          if (userAttributes && typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+            localStorage.setItem(this.USERNAME_KEY, userAttributes);
           }
         } catch (e) {
           console.warn('Could not get user attributes:', e);
@@ -85,9 +85,9 @@ export class AuthService {
             // Validate token before storing
             if (this.isTokenValid(token)) {
               // Check if we're in browser environment
-              if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
-                sessionStorage.setItem(this.TOKEN_KEY, token);
-                sessionStorage.setItem(this.USERNAME_KEY, username);
+              if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+                localStorage.setItem(this.TOKEN_KEY, token);
+                localStorage.setItem(this.USERNAME_KEY, username);
               }
               this.authStateSubject.next(true);
               
@@ -115,9 +115,9 @@ export class AuthService {
             
             if (token && this.isTokenValid(token) && !this.isTokenExpired(token)) {
               // Check if we're in browser environment
-              if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
-                sessionStorage.setItem(this.TOKEN_KEY, token);
-                sessionStorage.setItem(this.USERNAME_KEY, username);
+              if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+                localStorage.setItem(this.TOKEN_KEY, token);
+                localStorage.setItem(this.USERNAME_KEY, username);
               }
               this.authStateSubject.next(true);
               
@@ -244,9 +244,9 @@ export class AuthService {
    */
   private clearSession(): void {
     // Check if we're in browser environment
-    if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
-      sessionStorage.removeItem(this.TOKEN_KEY);
-      sessionStorage.removeItem(this.USERNAME_KEY);
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      localStorage.removeItem(this.TOKEN_KEY);
+      localStorage.removeItem(this.USERNAME_KEY);
     }
     this.authStateSubject.next(false);
   }
@@ -256,11 +256,11 @@ export class AuthService {
    */
   getToken(): string | null {
     // Check if we're in browser environment
-    if (typeof window === 'undefined' || typeof sessionStorage === 'undefined') {
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
       return null;
     }
     
-    const token = sessionStorage.getItem(this.TOKEN_KEY);
+    const token = localStorage.getItem(this.TOKEN_KEY);
     
     // Check if token is expired
     if (token && this.isTokenExpired(token)) {
@@ -333,8 +333,8 @@ export class AuthService {
     return {
       isAuthenticated: this.isAuthenticated(),
       token: this.getToken(),
-      username: typeof window !== 'undefined' && typeof sessionStorage !== 'undefined' 
-        ? sessionStorage.getItem(this.USERNAME_KEY) 
+      username: typeof window !== 'undefined' && typeof localStorage !== 'undefined' 
+        ? localStorage.getItem(this.USERNAME_KEY) 
         : null
     };
   }
