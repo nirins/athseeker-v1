@@ -22,6 +22,57 @@ resource "aws_scheduler_schedule" "daily_trigger" {
   }
 }
 
+# EventBridge Scheduler for BK market at 7 PM Thailand time
+resource "aws_scheduler_schedule" "bk_market_trigger" {
+  name        = "${local.name_prefix}-bk-market-trigger"
+  description = "Trigger Task Generator Lambda for BK market daily at 7 PM Thailand time"
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  # 7 PM Thailand time = 12 PM UTC (Thailand is UTC+7), Monday to Friday only
+  schedule_expression = "cron(0 12 ? * MON-FRI *)"
+  
+  state = "ENABLED"
+
+  target {
+    arn      = aws_lambda_function.task_generator.arn
+    role_arn = aws_iam_role.scheduler_role.arn
+
+    input = jsonencode({
+      date   = "{{execution-time:yyyy-MM-dd}}"
+      market = "BK"
+    })
+  }
+}
+
+# EventBridge Scheduler for US market at 7 PM New York time
+resource "aws_scheduler_schedule" "us_market_trigger" {
+  name        = "${local.name_prefix}-us-market-trigger"
+  description = "Trigger Task Generator Lambda for US market daily at 7 PM New York time"
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  # 7 PM New York time = 11 PM UTC (EST) or 12 AM UTC (EDT), Monday to Friday only
+  # Using 11 PM UTC (23:00) for EST - adjust seasonally if needed
+  schedule_expression = "cron(0 23 ? * MON-FRI *)"
+  
+  state = "ENABLED"
+
+  target {
+    arn      = aws_lambda_function.task_generator.arn
+    role_arn = aws_iam_role.scheduler_role.arn
+
+    input = jsonencode({
+      date   = "{{execution-time:yyyy-MM-dd}}"
+      market = "US"
+    })
+  }
+}
+
 # IAM role for EventBridge Scheduler
 resource "aws_iam_role" "scheduler_role" {
   name = "${local.name_prefix}-scheduler-role"

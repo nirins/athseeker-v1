@@ -36,6 +36,11 @@ export class StockChartComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
   constructor(private router: Router) {}
 
+  private isMobileDevice(): boolean {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+           window.innerWidth <= 768;
+  }
+
   // Getter to get the actual stock data
   get currentStockData(): StockData {
     return this.enhancedStockData?.stockData || this.stockData;
@@ -163,6 +168,7 @@ export class StockChartComponent implements OnInit, OnChanges, OnDestroy, AfterV
               display: false
             },
             tooltip: {
+              enabled: !this.isMobileDevice(), // Disable tooltips on mobile devices
               mode: 'index',
               intersect: false,
               callbacks: chartType === 'candlestick' ? {
