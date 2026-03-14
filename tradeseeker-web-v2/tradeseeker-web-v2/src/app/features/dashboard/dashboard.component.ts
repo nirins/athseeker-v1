@@ -86,10 +86,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       // Chart type always defaults to candlestick (selector is hidden)
       sessionStorage.removeItem('chartType');
 
-      const savedStrategy = sessionStorage.getItem('tradingStrategy') as TradingStrategy;
-      if (savedStrategy) {
-        this.selectedStrategy = savedStrategy;
-      }
+      // Strategy always defaults to ATH
+      sessionStorage.removeItem('tradingStrategy');
     }
 
     // Set up market change handler with switchMap to cancel previous requests
