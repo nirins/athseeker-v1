@@ -448,7 +448,7 @@ class StockDownloader:
             price_data: List of price records
             moving_averages: List of moving average records (optional)
         """
-        near_ath_detection = self.near_ath_detector.check_near_ath_detection(symbol_with_market, market_code, price_data)
+        near_ath_detection = self.near_ath_detector.check_near_ath_detection(symbol_with_market, market_code, price_data, moving_averages)
         
         if near_ath_detection:
             # Merge price data with moving averages for beauty score calculation
