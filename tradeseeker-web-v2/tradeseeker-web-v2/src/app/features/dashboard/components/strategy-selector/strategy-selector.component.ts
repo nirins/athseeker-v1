@@ -22,8 +22,8 @@ export class StrategySelectorComponent {
   strategies: StrategyOption[] = [
     { value: 'ath', label: 'ATH' },
     { value: 'near-ath', label: 'Near ATH' },
-    { value: 'golden-cross', label: 'Golden Cross' },
-    { value: 'death-cross', label: 'Death Cross' }
+    { value: 'golden-cross', label: 'Golden' },
+    { value: 'death-cross', label: 'Death' }
   ];
 
   onStrategySelect(strategy: TradingStrategy): void {

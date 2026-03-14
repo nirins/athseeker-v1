@@ -58,7 +58,7 @@
   </div>
 
   <div *ngIf="!isLoading && !error && stockDataArray.length === 0" class="empty-state">
-    <p>No {{ selectedStrategy === 'golden-cross' ? 'golden cross' : selectedStrategy === 'death-cross' ? 'death cross' : 'all-time high' }} signals found for {{ selectedMarket }} market.</p>
+    <p>No {{ selectedStrategy === 'golden-cross' ? 'golden cross' : selectedStrategy === 'death-cross' ? 'death cross' : selectedStrategy === 'near-ath' ? 'near ATH' : 'all-time high' }} signals found for {{ selectedMarket }} market.</p>
     <button (click)="onRefresh()" class="refresh-button">Refresh</button>
   </div>
 
