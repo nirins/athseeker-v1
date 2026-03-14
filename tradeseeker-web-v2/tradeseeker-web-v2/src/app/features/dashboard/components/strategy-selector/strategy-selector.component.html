@@ -1,13 +1,13 @@
 <div class="strategy-selector">
-  <label class="selector-label" for="strategy-select">Strategy:</label>
-  <select
-    id="strategy-select"
-    class="strategy-dropdown"
-    [value]="selectedStrategy"
-    (change)="onStrategySelect($any($event.target).value)"
-  >
-    <option *ngFor="let strategy of strategies" [value]="strategy.value">
+  <label class="selector-label">Strategy:</label>
+  <div class="button-group">
+    <button
+      *ngFor="let strategy of strategies"
+      class="strategy-button"
+      [class.active]="selectedStrategy === strategy.value"
+      (click)="onStrategySelect(strategy.value)"
+    >
       {{ strategy.label }}
-    </option>
-  </select>
+    </button>
+  </div>
 </div>
