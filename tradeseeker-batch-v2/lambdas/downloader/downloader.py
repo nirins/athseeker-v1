@@ -43,7 +43,7 @@ class StockDownloader:
         
         # Initialize specialized modules with configurable volatility filter
         max_daily_volatility = float(os.environ.get('MAX_DAILY_VOLATILITY', '100.0'))
-        near_ath_threshold = float(os.environ.get('NEAR_ATH_THRESHOLD', '10.0'))
+        near_ath_threshold = float(os.environ.get('NEAR_ATH_THRESHOLD', '7.0'))
         
         self.api_client = EODHDClient(self.ssm, self.secretsmanager, environment)
         self.storage = StorageManager(environment, s3_bucket, dynamodb_table, self.s3, self.dynamodb)

@@ -12,7 +12,7 @@ logger = logging.getLogger()
 class NearATHDetector:
     """Handles Near ATH detection for all stocks"""
 
-    def __init__(self, environment: str, max_daily_volatility: float = 100.0, near_ath_threshold: float = 10.0):
+    def __init__(self, environment: str, max_daily_volatility: float = 100.0, near_ath_threshold: float = 7.0):
         self.environment = environment
         self.max_daily_volatility = max_daily_volatility
         self.near_ath_threshold = near_ath_threshold
@@ -49,10 +49,10 @@ class NearATHDetector:
             historical_min = float('inf')
 
             for record in price_data:
-                price = float(record['close'])
-                historical_min = min(historical_min, price)
-                if price > all_time_high:
-                    all_time_high = price
+                historical_min = min(historical_min, float(record['close']))
+                high = float(record['high'])
+                if high > all_time_high:
+                    all_time_high = high
                     ath_date = record['date']
 
             if all_time_high == 0.0 or ath_date is None:
@@ -66,7 +66,7 @@ class NearATHDetector:
 
             # Rule 3: No day in the recent 180 days may be >= ATH
             cutoff_date = (datetime.now() - timedelta(days=180)).strftime('%Y-%m-%d')
-            recent_max = max((float(r['close']) for r in price_data if r['date'] >= cutoff_date), default=0.0)
+            recent_max = max((float(r['high']) for r in price_data if r['date'] >= cutoff_date), default=0.0)
             if recent_max >= all_time_high:
                 logger.info(f"Skipping {symbol}: recent 180-day high {recent_max:.2f} >= ATH {all_time_high:.2f}")
                 return None
@@ -80,19 +80,30 @@ class NearATHDetector:
                 logger.info(f"Skipping {symbol}: price {current_price:.2f} not in near-ATH range [{near_ath_floor:.2f}, {all_time_high:.2f})")
                 return None
 
-            # Rule 5: Most recent price must be above EMA50 and EMA200
+            # Rule 5: Most recent price must be above all EMAs (7, 30, 50, 200)
             if moving_averages:
                 last_date = last_record['date']
                 ema_record = next((r for r in reversed(moving_averages) if r['date'] == last_date), None)
                 if ema_record:
-                    ema50 = ema_record.get('ema_50')
-                    ema200 = ema_record.get('ema_200')
-                    if ema50 is not None and current_price < float(ema50):
+                    for ema_field in ['ema_7', 'ema_30', 'ema_50', 'ema_200']:
+                        ema_val = ema_record.get(ema_field)
+                        if ema_val is not None and current_price < float(ema_val):
                         logger.info(f"Skipping {symbol}: price {current_price:.2f} below EMA50 {float(ema50):.2f}")
                         return None
                     if ema200 is not None and current_price < float(ema200):
                         logger.info(f"Skipping {symbol}: price {current_price:.2f} below EMA200 {float(ema200):.2f}")
                         return None
+
+            # Rule 5: Today's price must be above EMA7, EMA30, EMA50, and EMA200
+            if moving_averages:
+                last_date = last_record['date']
+                ema_record = next((r for r in reversed(moving_averages) if r['date'] == last_date), None)
+                if ema_record:
+                    for ema_field in ['ema_7', 'ema_30', 'ema_50', 'ema_200']:
+                        ema_val = ema_record.get(ema_field)
+                        if ema_val is not None and current_price < float(ema_val):
+                            logger.info(f"Skipping {symbol}: price {current_price:.2f} below {ema_field} {float(ema_val):.2f}")
+                            return None
 
             distance_from_ath = ((all_time_high - current_price) / all_time_high) * 100
             percentage_gain = ((current_price - historical_min) / historical_min) * 100
