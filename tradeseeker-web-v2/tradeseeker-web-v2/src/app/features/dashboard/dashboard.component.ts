@@ -83,10 +83,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.selectedDisplayMode = savedDisplayMode;
       }
 
-      const savedChartType = sessionStorage.getItem('chartType') as ChartType;
-      if (savedChartType) {
-        this.selectedChartType = savedChartType;
-      }
+      // Chart type always defaults to candlestick (selector is hidden)
+      sessionStorage.removeItem('chartType');
 
       const savedStrategy = sessionStorage.getItem('tradingStrategy') as TradingStrategy;
       if (savedStrategy) {
@@ -137,8 +135,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
    * Load a page of stocks with fallback to client-side pagination
    */
   private loadStockPageWithFallback(): void {
-    // For ATH strategy, fetch all data on first load since API doesn't support proper pagination
-    const shouldFetchAll = this.selectedStrategy === 'ath' && this.currentOffset === 0;
+    // For ATH/Near-ATH strategy, fetch all data on first load since API doesn't support proper pagination
+    const shouldFetchAll = (this.selectedStrategy === 'ath' || this.selectedStrategy === 'near-ath') && this.currentOffset === 0;
     const requestLimit = shouldFetchAll ? 100 : this.PAGE_SIZE; // Use max allowed limit (100) to get ATH data
     
     this.apiService.getStrategyStocks(this.selectedStrategy, this.selectedMarket, requestLimit, this.currentOffset)
@@ -161,8 +159,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
           // Debug: Log the first 10 symbols from API response
           console.log('API Response - First 10 symbols in order:', symbols.slice(0, 10));
 
-          // For ATH strategy, always use client-side pagination since API doesn't support proper offset
-          if (this.selectedStrategy === 'ath') {
+          // For ATH/Near-ATH strategy, always use client-side pagination since API doesn't support proper offset
+          if (this.selectedStrategy === 'ath' || this.selectedStrategy === 'near-ath') {
             
             // Only update allSymbols on first load to avoid overwriting
             if (this.currentOffset === 0) {

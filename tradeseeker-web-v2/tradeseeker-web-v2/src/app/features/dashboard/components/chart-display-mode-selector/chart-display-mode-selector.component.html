@@ -1,19 +1,13 @@
 <div class="display-mode-selector">
-  <label class="selector-label">Display:</label>
-  <div class="radio-group">
-    <label
-      *ngFor="let mode of displayModes"
-      [class.selected]="mode.value === selectedMode"
-      class="radio-option"
-    >
-      <input
-        type="radio"
-        [value]="mode.value"
-        [checked]="mode.value === selectedMode"
-        (change)="onModeSelect(mode.value)"
-        name="displayMode"
-      />
-      <span class="radio-label">{{ mode.label }}</span>
-    </label>
-  </div>
+  <label class="selector-label" for="display-mode-select">Display:</label>
+  <select
+    id="display-mode-select"
+    class="display-dropdown"
+    [value]="selectedMode"
+    (change)="onModeSelect($any($event.target).value)"
+  >
+    <option *ngFor="let mode of displayModes" [value]="mode.value">
+      {{ mode.label }}
+    </option>
+  </select>
 </div>

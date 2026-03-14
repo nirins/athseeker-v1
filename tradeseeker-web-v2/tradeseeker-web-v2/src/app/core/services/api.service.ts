@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, forkJoin, from, throwError } from 'rxjs';
 import { map, catchError, retry, mergeMap, toArray, filter } from 'rxjs/operators';
-import { GoldenCrossResponse, StockData, StockDataResponse, RawStockData, MovingAveragePoint, ATHResponse } from '../models';
+import { GoldenCrossResponse, StockData, StockDataResponse, RawStockData, MovingAveragePoint, ATHResponse, NearATHResponse } from '../models';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -106,15 +106,34 @@ export class ApiService {
   /**
    * Fetch stocks based on strategy (golden cross, death cross, or ath)
    */
-  getStrategyStocks(strategy: 'golden-cross' | 'death-cross' | 'ath', market: string, limit?: number, offset?: number): Observable<GoldenCrossResponse | ATHResponse> {
+  getStrategyStocks(strategy: 'golden-cross' | 'death-cross' | 'ath' | 'near-ath', market: string, limit?: number, offset?: number): Observable<GoldenCrossResponse | ATHResponse | NearATHResponse> {
       if (strategy === 'death-cross') {
         return this.getDeathCrosses(market, limit, offset);
       } else if (strategy === 'ath') {
         return this.getATHStocks(market, undefined, limit, offset);
+      } else if (strategy === 'near-ath') {
+        return this.getNearATHStocks(market, limit, offset);
       } else {
         return this.getGoldenCrosses(market, limit, offset);
       }
     }
+
+  getNearATHStocks(market?: string, limit?: number, offset?: number): Observable<NearATHResponse> {
+    let url = `${this.baseUrl}/near-ath`;
+    const params: string[] = [];
+
+    if (market) params.push(`market=${market}`);
+    if (limit) params.push(`limit=${limit}`);
+    if (offset) params.push(`offset=${offset}`);
+    params.push(`_t=${Date.now()}`);
+
+    if (params.length > 0) url += `?${params.join('&')}`;
+
+    return this.http.get<NearATHResponse>(url).pipe(
+      retry(2),
+      catchError(this.handleError)
+    );
+  }
 
   /**
    * Fetch detailed stock data for a symbol

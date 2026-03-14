@@ -40,6 +40,12 @@ variable "ath_stocks_table" {
   default     = "ts-batch-v2-dev-ath"
 }
 
+variable "near_ath_stocks_table" {
+  description = "DynamoDB table name for Near ATH stocks"
+  type        = string
+  default     = "ts-batch-v2-dev-near-ath"
+}
+
 variable "cross_date_index" {
   description = "GSI name for cross_date index"
   type        = string

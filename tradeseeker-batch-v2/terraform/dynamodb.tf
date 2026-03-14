@@ -209,3 +209,58 @@ resource "aws_dynamodb_table" "ath_detections" {
     }
   )
 }
+
+# DynamoDB table for Near ATH detection records (past 30 days)
+resource "aws_dynamodb_table" "near_ath_detections" {
+  name         = "${local.name_prefix}-near-ath"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "symbol"
+
+  attribute {
+    name = "symbol"
+    type = "S"
+  }
+
+  attribute {
+    name = "market_code"
+    type = "S"
+  }
+
+  attribute {
+    name = "beauty_score"
+    type = "N"
+  }
+
+  global_secondary_index {
+    name            = "market_code-index"
+    hash_key        = "market_code"
+    projection_type = "ALL"
+  }
+
+  global_secondary_index {
+    name            = "beauty_score-index"
+    hash_key        = "market_code"
+    range_key       = "beauty_score"
+    projection_type = "ALL"
+  }
+
+  ttl {
+    attribute_name = "ttl"
+    enabled        = true
+  }
+
+  point_in_time_recovery {
+    enabled = true
+  }
+
+  server_side_encryption {
+    enabled = true
+  }
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${local.name_prefix}-near-ath"
+    }
+  )
+}
