@@ -25,8 +25,8 @@ class NearATHDetector:
         1. Reject if any day has daily volatility > max_daily_volatility
         2. ATH must be older than 180 days
         3. No day in the recent 180 days may be >= ATH (no recent breakout)
-        4. Most recent price must be within near_ath_threshold% below ATH
-        5. Most recent price must be above EMA50 and EMA200
+        4. Most recent close price must be within near_ath_threshold% below ATH
+        5. Today's price must be above EMA7, EMA30, EMA50, and EMA200
 
         Returns Near ATH detection record or None.
         """
@@ -43,7 +43,7 @@ class NearATHDetector:
                         logger.info(f"Rejecting {symbol}: excessive volatility {volatility:.1f}% on {record['date']}")
                         return None
 
-            # Single pass: find ATH and historical min
+            # Single pass: find ATH (using high price) and historical min (using close)
             all_time_high = 0.0
             ath_date = None
             historical_min = float('inf')
@@ -64,14 +64,14 @@ class NearATHDetector:
                 logger.info(f"Skipping {symbol}: ATH set {days_since_ath} days ago (must be > 180)")
                 return None
 
-            # Rule 3: No day in the recent 180 days may be >= ATH
+            # Rule 3: No day in the recent 180 days may be >= ATH (no recent breakout)
             cutoff_date = (datetime.now() - timedelta(days=180)).strftime('%Y-%m-%d')
             recent_max = max((float(r['high']) for r in price_data if r['date'] >= cutoff_date), default=0.0)
             if recent_max >= all_time_high:
                 logger.info(f"Skipping {symbol}: recent 180-day high {recent_max:.2f} >= ATH {all_time_high:.2f}")
                 return None
 
-            # Rule 4: Most recent price must be within near_ath_threshold% below ATH
+            # Rule 4: Most recent close must be within near_ath_threshold% below ATH
             last_record = price_data[-1]
             current_price = float(last_record['close'])
             near_ath_floor = all_time_high * (1 - self.near_ath_threshold / 100)
@@ -79,20 +79,6 @@ class NearATHDetector:
             if current_price < near_ath_floor or current_price >= all_time_high:
                 logger.info(f"Skipping {symbol}: price {current_price:.2f} not in near-ATH range [{near_ath_floor:.2f}, {all_time_high:.2f})")
                 return None
-
-            # Rule 5: Most recent price must be above all EMAs (7, 30, 50, 200)
-            if moving_averages:
-                last_date = last_record['date']
-                ema_record = next((r for r in reversed(moving_averages) if r['date'] == last_date), None)
-                if ema_record:
-                    for ema_field in ['ema_7', 'ema_30', 'ema_50', 'ema_200']:
-                        ema_val = ema_record.get(ema_field)
-                        if ema_val is not None and current_price < float(ema_val):
-                        logger.info(f"Skipping {symbol}: price {current_price:.2f} below EMA50 {float(ema50):.2f}")
-                        return None
-                    if ema200 is not None and current_price < float(ema200):
-                        logger.info(f"Skipping {symbol}: price {current_price:.2f} below EMA200 {float(ema200):.2f}")
-                        return None
 
             # Rule 5: Today's price must be above EMA7, EMA30, EMA50, and EMA200
             if moving_averages:

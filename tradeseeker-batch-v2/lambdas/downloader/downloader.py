@@ -454,11 +454,11 @@ class StockDownloader:
             # Merge price data with moving averages for beauty score calculation
             merged_data = self._merge_price_and_ema_data(price_data, moving_averages)
             
-            # Calculate breakout beauty score using current price as breakout price
+            # Calculate breakout beauty score using the ATH date/price for proper analysis
             beauty_analysis = self.breakout_analyzer.calculate_breakout_beauty_score(
                 merged_data, 
-                near_ath_detection['detection_date'], 
-                near_ath_detection['current_price']
+                near_ath_detection['ath_date'], 
+                near_ath_detection['ath_price']
             )
             
             # Add beauty score to Near ATH detection
