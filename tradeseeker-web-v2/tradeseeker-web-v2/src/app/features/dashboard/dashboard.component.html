@@ -26,6 +26,7 @@
       <div class="right-controls">
         <button 
           class="refresh-button"
+          [class.active]="isLoading"
           (click)="onRefresh()"
           [disabled]="isLoading">
           <span *ngIf="!isLoading">Refresh</span>
