@@ -238,7 +238,7 @@ class StockDownloader:
         """
         has_cross = self.check_cross_signals(symbol_with_market, market_code, moving_averages)
         has_ath = self.check_ath_detection(symbol_with_market, market_code, price_data)
-        has_near_ath = self.check_near_ath_detection(symbol_with_market, market_code, price_data)
+        has_near_ath = self.check_near_ath_detection(symbol_with_market, market_code, price_data, moving_averages)
         
         return {
             'cross': has_cross,
@@ -361,7 +361,7 @@ class StockDownloader:
         
         return ath_detection is not None
     
-    def check_near_ath_detection(self, symbol_with_market: str, market_code: str, price_data: List[Dict]) -> bool:
+    def check_near_ath_detection(self, symbol_with_market: str, market_code: str, price_data: List[Dict], moving_averages: List[Dict] = None) -> bool:
         """
         Check if there is Near ATH detection (without saving)
         
@@ -369,11 +369,12 @@ class StockDownloader:
             symbol_with_market: Symbol with market code
             market_code: Market code
             price_data: List of price records
+            moving_averages: Optional moving averages for EMA50 filter
             
         Returns:
             bool: True if Near ATH detected, False otherwise
         """
-        near_ath_detection = self.near_ath_detector.check_near_ath_detection(symbol_with_market, market_code, price_data)
+        near_ath_detection = self.near_ath_detector.check_near_ath_detection(symbol_with_market, market_code, price_data, moving_averages)
         
         return near_ath_detection is not None
     

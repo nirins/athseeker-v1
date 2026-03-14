@@ -26,7 +26,7 @@ class NearATHDetector:
         self.max_daily_volatility = max_daily_volatility
         self.near_ath_threshold = near_ath_threshold
     
-    def check_near_ath_detection(self, symbol: str, market_code: str, price_data: List[Dict]) -> Dict:
+    def check_near_ath_detection(self, symbol: str, market_code: str, price_data: List[Dict], moving_averages: List[Dict] = None) -> Dict:
         """
         Check if symbol is near its all-time high in the last 21 days
         Returns the closest approach to ATH found in that period
@@ -68,6 +68,15 @@ class NearATHDetector:
             if all_time_high == 0.0:
                 return None
             
+            # ATH must have been set more than 180 days ago
+            # If ATH was set recently (within last 180 days), skip — it belongs to ATH detection
+            if ath_date:
+                ath_datetime = datetime.strptime(ath_date, '%Y-%m-%d')
+                days_since_ath = (datetime.now() - ath_datetime).days
+                if days_since_ath < 180:
+                    logger.info(f"Skipping {symbol}: ATH was set {days_since_ath} days ago (must be > 180 days)")
+                    return None
+            
             # Calculate the near ATH threshold price
             near_ath_price_threshold = all_time_high * (1 - self.near_ath_threshold / 100)
             
@@ -82,12 +91,26 @@ class NearATHDetector:
             # Check the last 21 records for near ATH conditions
             recent_records = price_data[-21:] if len(price_data) >= 21 else price_data
             
+            # Build EMA50 lookup if moving averages provided
+            ema50_lookup = {}
+            if moving_averages:
+                for record in moving_averages:
+                    if record.get('ema_50') is not None:
+                        ema50_lookup[record['date']] = float(record['ema_50'])
+            
             for record in recent_records:
                 current_price = float(record['close'])
                 
                 # Check if current price is within near ATH threshold but not exactly ATH
                 if (current_price >= near_ath_price_threshold and 
                     current_price < all_time_high):
+                    
+                    # Require price to be above EMA50 (uptrend confirmation)
+                    if ema50_lookup:
+                        ema50 = ema50_lookup.get(record['date'])
+                        if ema50 is not None and current_price < ema50:
+                            logger.info(f"Skipping {symbol} on {record['date']}: price {current_price:.2f} is below EMA50 {ema50:.2f}")
+                            continue
                     
                     # Calculate how close we are to ATH (percentage below ATH)
                     distance_from_ath = ((all_time_high - current_price) / all_time_high) * 100
