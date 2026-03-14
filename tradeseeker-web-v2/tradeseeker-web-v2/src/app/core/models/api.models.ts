@@ -47,6 +47,29 @@ export interface ATHStock {
 }
 
 /**
+ * Response from near all-time high API endpoint
+ */
+export interface NearATHResponse {
+  data: NearATHStock[];
+}
+
+/**
+ * Individual near all-time high stock data
+ */
+export interface NearATHStock {
+  symbol: string;                    // Stock symbol with market code (e.g., "AAPL.US")
+  detection_date: string;            // Date when Near ATH was detected (YYYY-MM-DD)
+  current_price: number;             // Current price near the ATH
+  ath_price: number;                 // The actual all-time high price
+  ath_date: string;                  // Date when the ATH was reached (YYYY-MM-DD)
+  distance_from_ath_percentage: number; // Percentage below ATH (e.g., 5.2 means 5.2% below ATH)
+  percentage_gain: number;           // Percentage gain from lowest price to current price
+  market_code: string;               // Market code (e.g., "US", "BK", "CC")
+  detected_at: string;               // ISO timestamp when detection was processed
+  ttl: number;                       // Unix timestamp for TTL (30 days from detection)
+}
+
+/**
  * Response wrapper for stock data API endpoint
  */
 export interface StockDataResponse {

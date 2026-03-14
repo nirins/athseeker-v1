@@ -11,6 +11,7 @@ import logging
 from technical_analysis import calculate_ema_series, calculate_candle_metrics
 from cross_detector import CrossDetector
 from ath_detector import ATHDetector
+from near_ath_detector import NearATHDetector
 from breakout_analyzer import BreakoutAnalyzer
 from storage import StorageManager
 from api_client import EODHDClient
@@ -42,11 +43,13 @@ class StockDownloader:
         
         # Initialize specialized modules with configurable volatility filter
         max_daily_volatility = float(os.environ.get('MAX_DAILY_VOLATILITY', '100.0'))
+        near_ath_threshold = float(os.environ.get('NEAR_ATH_THRESHOLD', '10.0'))
         
         self.api_client = EODHDClient(self.ssm, self.secretsmanager, environment)
         self.storage = StorageManager(environment, s3_bucket, dynamodb_table, self.s3, self.dynamodb)
         self.cross_detector = CrossDetector(environment)
         self.ath_detector = ATHDetector(environment, max_daily_volatility)
+        self.near_ath_detector = NearATHDetector(environment, max_daily_volatility, near_ath_threshold)
         self.breakout_analyzer = BreakoutAnalyzer()
     
     def process_task(self, record: Dict[str, Any]):
@@ -235,11 +238,13 @@ class StockDownloader:
         """
         has_cross = self.check_cross_signals(symbol_with_market, market_code, moving_averages)
         has_ath = self.check_ath_detection(symbol_with_market, market_code, price_data)
+        has_near_ath = self.check_near_ath_detection(symbol_with_market, market_code, price_data)
         
         return {
             'cross': has_cross,
             'ath': has_ath,
-            'has_any': has_cross or has_ath
+            'near_ath': has_near_ath,
+            'has_any': has_cross or has_ath or has_near_ath
         }
     
     def save_detections(self, symbol_with_market: str, market_code: str, moving_averages: List[Dict], 
@@ -260,6 +265,9 @@ class StockDownloader:
         
         if detections['ath']:
             self.handle_ath_detection(symbol_with_market, market_code, price_data, moving_averages)
+        
+        if detections['near_ath']:
+            self.handle_near_ath_detection(symbol_with_market, market_code, price_data, moving_averages)
     
     def filter_data_by_retention(self, sorted_data: List[Dict], market_code: str) -> List[Dict]:
         """
@@ -353,6 +361,22 @@ class StockDownloader:
         
         return ath_detection is not None
     
+    def check_near_ath_detection(self, symbol_with_market: str, market_code: str, price_data: List[Dict]) -> bool:
+        """
+        Check if there is Near ATH detection (without saving)
+        
+        Args:
+            symbol_with_market: Symbol with market code
+            market_code: Market code
+            price_data: List of price records
+            
+        Returns:
+            bool: True if Near ATH detected, False otherwise
+        """
+        near_ath_detection = self.near_ath_detector.check_near_ath_detection(symbol_with_market, market_code, price_data)
+        
+        return near_ath_detection is not None
+    
     def handle_cross_signals(self, symbol_with_market: str, market_code: str, moving_averages: List[Dict], candle_metrics: Dict):
         """
         Handle cross signal detection and saving
@@ -412,6 +436,35 @@ class StockDownloader:
             
             logger.info(f"ATH detected: {symbol_with_market} - ${ath_detection['ath_price']} (+{ath_detection['ath_percentage_gain']}%) - Beauty: {beauty_analysis.get('beauty_score', 'N/A')} ({beauty_analysis.get('grade', 'N/A')})")
             self.storage.save_ath_detection(ath_detection)
+    
+    def handle_near_ath_detection(self, symbol_with_market: str, market_code: str, price_data: List[Dict], moving_averages: List[Dict] = None):
+        """
+        Handle Near ATH detection and saving
+        
+        Args:
+            symbol_with_market: Symbol with market code
+            market_code: Market code
+            price_data: List of price records
+            moving_averages: List of moving average records (optional)
+        """
+        near_ath_detection = self.near_ath_detector.check_near_ath_detection(symbol_with_market, market_code, price_data)
+        
+        if near_ath_detection:
+            # Merge price data with moving averages for beauty score calculation
+            merged_data = self._merge_price_and_ema_data(price_data, moving_averages)
+            
+            # Calculate breakout beauty score using current price as breakout price
+            beauty_analysis = self.breakout_analyzer.calculate_breakout_beauty_score(
+                merged_data, 
+                near_ath_detection['detection_date'], 
+                near_ath_detection['current_price']
+            )
+            
+            # Add beauty score to Near ATH detection
+            near_ath_detection.update(beauty_analysis)
+            
+            logger.info(f"Near ATH detected: {symbol_with_market} - ${near_ath_detection['current_price']} ({near_ath_detection['distance_from_ath_percentage']}% from ATH ${near_ath_detection['ath_price']}) - Beauty: {beauty_analysis.get('beauty_score', 'N/A')} ({beauty_analysis.get('grade', 'N/A')})")
+            self.storage.save_near_ath_detection(near_ath_detection)
     
     def _merge_price_and_ema_data(self, price_data: List[Dict], moving_averages: List[Dict] = None) -> List[Dict]:
         """

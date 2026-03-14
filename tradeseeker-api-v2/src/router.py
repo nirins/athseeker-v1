@@ -14,6 +14,7 @@ from src.handlers.death_crosses import handle_death_crosses
 from src.handlers.stock_price import handle_stock_price
 from src.handlers.stock_history import handle_stock_history
 from src.handlers.ath_stocks import handle_ath_stocks
+from src.handlers.near_ath_stocks import handle_near_ath_stocks
 from src.handlers.openai_summary import handle_openai_summary
 from src.formatters import error_response
 
@@ -34,6 +35,7 @@ def route_request(
     - GET /golden-crosses -> golden_crosses_handler
     - GET /death-crosses -> death_crosses_handler
     - GET /ath -> ath_stocks_handler
+    - GET /near-ath -> near_ath_stocks_handler
     - GET /openai-summary -> openai_summary_handler
     - GET /stocks/{symbol} -> stock_price_handler
     - GET /stocks/{symbol}/history -> stock_history_handler
@@ -88,6 +90,11 @@ def _route_get_request(path: str, query_params: Dict[str, Any]) -> dict:
     if path == '/ath':
         logger.info("Routing to ath_stocks handler")
         return handle_ath_stocks(query_params)
+    
+    # Route: GET /near-ath
+    if path == '/near-ath':
+        logger.info("Routing to near_ath_stocks handler")
+        return handle_near_ath_stocks(query_params)
     
     # Route: GET /openai-summary
     if path == '/openai-summary':

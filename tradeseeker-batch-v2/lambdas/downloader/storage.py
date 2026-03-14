@@ -202,3 +202,35 @@ class StorageManager:
         except Exception as e:
             logger.error(f"Error saving ATH detection for {detection['symbol']}: {str(e)}")
             # Don't raise - this is not critical
+    
+    def save_near_ath_detection(self, detection: Dict):
+        """
+        Save Near ATH detection record to DynamoDB (one record per symbol, overwrites existing)
+        
+        Args:
+            detection: Near ATH detection record dictionary
+        """
+        try:
+            table_name = f"ts-batch-v2-{self.environment}-near-ath"
+            table = self.dynamodb.Table(table_name)
+            
+            # Log what we're about to save
+            logger.info(f"Saving Near ATH detection with fields: {list(detection.keys())}")
+            if 'beauty_score' in detection:
+                logger.info(f"Beauty score fields: beauty_score={detection.get('beauty_score')}, grade={detection.get('grade')}")
+            else:
+                logger.warning("No beauty_score field found in detection record!")
+            
+            # Convert float values to Decimal for DynamoDB
+            detection_record = {
+                k: Decimal(str(v)) if isinstance(v, float) else v
+                for k, v in detection.items()
+            }
+            
+            # Save Near ATH record (will overwrite existing record with same symbol)
+            table.put_item(Item=detection_record)
+            logger.info(f"Near ATH detection saved: {detection['symbol']} - ${detection['current_price']} ({detection['distance_from_ath_percentage']}% from ATH)")
+                
+        except Exception as e:
+            logger.error(f"Error saving Near ATH detection for {detection['symbol']}: {str(e)}")
+            # Don't raise - this is not critical

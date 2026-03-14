@@ -47,6 +47,10 @@ class DynamoDBClient:
             'ATH_STOCKS_TABLE',
             'ts-batch-v2-dev-ath'
         )
+        self.near_ath_stocks_table_name = os.environ.get(
+            'NEAR_ATH_STOCKS_TABLE',
+            'ts-batch-v2-dev-near-ath'
+        )
         
         # GSI names from environment variables
         self.cross_date_index = os.environ.get('CROSS_DATE_INDEX', 'cross_date-index')
@@ -60,6 +64,7 @@ class DynamoDBClient:
         self.death_crosses_table = self.dynamodb.Table(self.death_crosses_table_name)
         self.stock_prices_table = self.dynamodb.Table(self.stock_prices_table_name)
         self.ath_stocks_table = self.dynamodb.Table(self.ath_stocks_table_name)
+        self.near_ath_stocks_table = self.dynamodb.Table(self.near_ath_stocks_table_name)
         
         logger.info(f"DynamoDB client initialized for region {self.region}")
     
@@ -725,3 +730,106 @@ class DynamoDBClient:
                     f"{e.response['Error']['Code']} - {e.response['Error']['Message']}"
                 )
                 raise
+
+
+    def query_near_ath_stocks_by_beauty_score(
+        self,
+        market_code: str,
+        limit: int = 50
+    ) -> list[dict]:
+        """
+        Query Near ATH stocks by beauty score (highest first) for a specific market.
+        
+        Uses beauty_score-index GSI for efficient querying ordered by beauty score.
+        
+        Args:
+            market_code: Market code (US, BK, CC)
+            limit: Maximum number of results to return
+            
+        Returns:
+            List of Near ATH stock records ordered by beauty score (highest first)
+            
+        Raises:
+            ClientError: If DynamoDB operation fails
+        """
+        start_time = time.time()
+        
+        try:
+            logger.info(f"Querying Near ATH stocks by beauty score for market={market_code}, limit={limit}")
+            
+            response = self.near_ath_stocks_table.query(
+                IndexName='beauty_score-index',
+                KeyConditionExpression=Key('market_code').eq(market_code),
+                ScanIndexForward=False,  # Descending order (highest beauty score first)
+                Limit=limit
+            )
+            
+            items = response.get('Items', [])
+            execution_time = time.time() - start_time
+            
+            logger.info(f"Found {len(items)} Near ATH stock records in {execution_time:.3f}s")
+            return items
+            
+        except ClientError as e:
+            execution_time = time.time() - start_time
+            logger.error(
+                f"DynamoDB query failed after {execution_time:.3f}s: "
+                f"{e.response['Error']['Code']} - {e.response['Error']['Message']}"
+            )
+            raise
+
+    def scan_near_ath_stocks(self, market_code: Optional[str] = None, limit: int = 50, offset: int = 0) -> list[dict]:
+        """
+        Scan Near ATH stocks table with optional market filter.
+        
+        WARNING: This is a table scan operation which is less efficient than queries.
+        Use query methods when possible.
+        
+        Args:
+            market_code: Optional market filter (US, BK, CC)
+            limit: Maximum number of results to return
+            offset: Number of results to skip
+            
+        Returns:
+            List of Near ATH stock records
+            
+        Raises:
+            ClientError: If DynamoDB operation fails
+        """
+        start_time = time.time()
+        
+        try:
+            scan_kwargs = {
+                'Limit': limit + offset  # Get extra items to handle offset
+            }
+            
+            if market_code:
+                logger.info(f"Scanning Near ATH stocks with market filter: {market_code}")
+                scan_kwargs['FilterExpression'] = Attr('market_code').eq(market_code)
+            else:
+                logger.info("Scanning all Near ATH stocks (no market filter)")
+            
+            response = self.near_ath_stocks_table.scan(**scan_kwargs)
+            
+            items = response.get('Items', [])
+            
+            # Handle pagination manually for offset
+            if offset > 0:
+                items = items[offset:]
+            
+            # Limit results
+            if len(items) > limit:
+                items = items[:limit]
+            
+            execution_time = time.time() - start_time
+            
+            logger.info(f"Scanned {len(items)} Near ATH stock records in {execution_time:.3f}s")
+            return items
+            
+        except ClientError as e:
+            execution_time = time.time() - start_time
+            logger.error(
+                f"DynamoDB scan failed after {execution_time:.3f}s: "
+                f"{e.response['Error']['Code']} - {e.response['Error']['Message']}"
+            )
+            raise

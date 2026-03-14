@@ -214,7 +214,7 @@ def validate_ath_stocks_params(params: Dict[str, Any]) -> Tuple[Dict[str, Any], 
         except (ValueError, TypeError):
             errors.append("limit must be a valid integer")
     else:
-        validated['limit'] = 50
+        validated['limit'] = 40
     
     # Validate offset (optional, non-negative integer, default: 0)
     if 'offset' in params:
@@ -229,10 +229,86 @@ def validate_ath_stocks_params(params: Dict[str, Any]) -> Tuple[Dict[str, Any], 
     else:
         validated['offset'] = 0
     
-    # Ensure date and days are not both provided
-    if 'date' in validated and 'days' in validated:
-        errors.append("Cannot specify both 'date' and 'days' parameters")
-    
+    return validated, errors
+
+
+def validate_near_ath_stocks_params(params: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
+    """
+    Validate Near ATH stocks query parameters.
+
+    Args:
+        params: Query parameters dict
+
+    Returns:
+        Tuple of (validated_params, errors)
+    """
+    validated = {}
+    errors = []
+
+    # Validate max_distance (default: 10.0)
+    if 'max_distance' in params:
+        try:
+            max_distance = float(params['max_distance'])
+            if max_distance < 0:
+                errors.append("max_distance must be >= 0")
+            elif max_distance > 50:
+                errors.append("max_distance cannot exceed 50")
+            else:
+                validated['max_distance'] = max_distance
+        except (ValueError, TypeError):
+            errors.append("max_distance must be a valid number")
+    else:
+        validated['max_distance'] = 10.0
+
+    # Validate min_gain (default: 0)
+    if 'min_gain' in params:
+        try:
+            min_gain = float(params['min_gain'])
+            if min_gain < 0:
+                errors.append("min_gain must be >= 0")
+            else:
+                validated['min_gain'] = min_gain
+        except (ValueError, TypeError):
+            errors.append("min_gain must be a valid number")
+    else:
+        validated['min_gain'] = 0.0
+
+    # Validate market (optional)
+    if 'market' in params:
+        market = params['market'].upper()
+        if market not in ['US', 'BK', 'CC']:
+            errors.append("market must be one of: US, BK, CC")
+        else:
+            validated['market'] = market
+
+    # Validate limit (default: 50, max: 100)
+    if 'limit' in params:
+        try:
+            limit = int(params['limit'])
+            if limit <= 0:
+                errors.append("limit must be a positive integer")
+            elif limit > 100:
+                errors.append("limit cannot exceed 100")
+            else:
+                validated['limit'] = limit
+        except (ValueError, TypeError):
+            errors.append("limit must be a valid integer")
+    else:
+        validated['limit'] = 50
+
+    # Validate offset (default: 0)
+    if 'offset' in params:
+        try:
+            offset = int(params['offset'])
+            if offset < 0:
+                errors.append("offset must be >= 0")
+            else:
+                validated['offset'] = offset
+        except (ValueError, TypeError):
+            errors.append("offset must be a valid integer")
+    else:
+        validated['offset'] = 0
+
     return validated, errors
 
 
