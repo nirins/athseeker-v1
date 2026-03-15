@@ -685,10 +685,16 @@ export class StockChartComponent implements OnInit, OnChanges, OnDestroy, AfterV
    */
   navigateToDetail(): void {
     if (!this.isDetailView && this.currentStockData?.symbol) {
-      const url = this.router.serializeUrl(
-        this.router.createUrlTree(['/stock', this.currentStockData.symbol])
-      );
-      window.open(url, '_blank');
+      // Use router navigation in Capacitor (no new tab support), window.open for web
+      const isCapacitor = (window as any).Capacitor?.isNativePlatform?.();
+      if (isCapacitor) {
+        this.router.navigate(['/stock', this.currentStockData.symbol]);
+      } else {
+        const url = this.router.serializeUrl(
+          this.router.createUrlTree(['/stock', this.currentStockData.symbol])
+        );
+        window.open(url, '_blank');
+      }
     }
   }
 

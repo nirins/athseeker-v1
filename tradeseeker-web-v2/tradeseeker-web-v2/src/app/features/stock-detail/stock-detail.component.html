@@ -1,4 +1,5 @@
 <div class="stock-detail-container">
+  <button class="back-button" *ngIf="isNative" (click)="goBack()">Back</button>
   <div class="header">
     <h1 class="stock-title">{{ symbol }}</h1>
     <div class="controls">
