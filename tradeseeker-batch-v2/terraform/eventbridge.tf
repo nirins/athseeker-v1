@@ -73,6 +73,31 @@ resource "aws_scheduler_schedule" "us_market_trigger" {
   }
 }
 
+# EventBridge Scheduler for CC market at 8 AM Thailand time
+resource "aws_scheduler_schedule" "cc_market_trigger" {
+  name        = "${local.name_prefix}-cc-market-trigger"
+  description = "Trigger Task Generator Lambda for CC market daily at 8 AM Thailand time"
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  # 8 AM Thailand time = 1 AM UTC (Thailand is UTC+7), every day (crypto runs 24/7)
+  schedule_expression = "cron(0 1 * * ? *)"
+  
+  state = "ENABLED"
+
+  target {
+    arn      = aws_lambda_function.task_generator.arn
+    role_arn = aws_iam_role.scheduler_role.arn
+
+    input = jsonencode({
+      date   = "{{execution-time:yyyy-MM-dd}}"
+      market = "CC"
+    })
+  }
+}
+
 # IAM role for EventBridge Scheduler
 resource "aws_iam_role" "scheduler_role" {
   name = "${local.name_prefix}-scheduler-role"
