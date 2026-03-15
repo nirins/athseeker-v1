@@ -1,0 +1,5 @@
+{
+  "appId": "com.athseeker.app",
+  "appName": "ATHSeeker",
+  "webDir": "dist/tradeseeker-web-v2/browser"
+}
