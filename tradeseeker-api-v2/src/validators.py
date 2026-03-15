@@ -120,8 +120,8 @@ def validate_golden_cross_params(params: Dict[str, Any]) -> Tuple[Dict[str, Any]
             limit = int(params['limit'])
             if limit <= 0:
                 errors.append("limit must be a positive integer")
-            elif limit > 100:
-                errors.append("limit cannot exceed 100")
+            elif limit > 1000:
+                errors.append("limit cannot exceed 1000")
             else:
                 validated['limit'] = limit
         except (ValueError, TypeError):
@@ -207,8 +207,8 @@ def validate_ath_stocks_params(params: Dict[str, Any]) -> Tuple[Dict[str, Any], 
             limit = int(params['limit'])
             if limit <= 0:
                 errors.append("limit must be a positive integer")
-            elif limit > 200:
-                errors.append("limit cannot exceed 200")
+            elif limit > 1000:
+                errors.append("limit cannot exceed 1000")
             else:
                 validated['limit'] = limit
         except (ValueError, TypeError):
@@ -281,14 +281,14 @@ def validate_near_ath_stocks_params(params: Dict[str, Any]) -> Tuple[Dict[str, A
         else:
             validated['market'] = market
 
-    # Validate limit (default: 50, max: 100)
+    # Validate limit (default: 50, max: 1000)
     if 'limit' in params:
         try:
             limit = int(params['limit'])
             if limit <= 0:
                 errors.append("limit must be a positive integer")
-            elif limit > 100:
-                errors.append("limit cannot exceed 100")
+            elif limit > 1000:
+                errors.append("limit cannot exceed 1000")
             else:
                 validated['limit'] = limit
         except (ValueError, TypeError):
@@ -360,8 +360,8 @@ def validate_death_cross_params(params: Dict[str, Any]) -> Tuple[Dict[str, Any],
             limit = int(params['limit'])
             if limit <= 0:
                 errors.append("limit must be a positive integer")
-            elif limit > 100:
-                errors.append("limit cannot exceed 100")
+            elif limit > 1000:
+                errors.append("limit cannot exceed 1000")
             else:
                 validated['limit'] = limit
         except (ValueError, TypeError):

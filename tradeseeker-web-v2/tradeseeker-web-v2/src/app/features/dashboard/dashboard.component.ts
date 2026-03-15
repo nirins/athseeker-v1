@@ -137,7 +137,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private loadStockPageWithFallback(): void {
     // For ATH/Near-ATH strategy, fetch all data on first load since API doesn't support proper pagination
     const shouldFetchAll = (this.selectedStrategy === 'ath' || this.selectedStrategy === 'near-ath') && this.currentOffset === 0;
-    const requestLimit = shouldFetchAll ? 200 : this.PAGE_SIZE; // Use max allowed limit (200) to get ATH data
+    const requestLimit = shouldFetchAll ? 1000 : this.PAGE_SIZE; // Use max allowed limit (1000) to get ATH data
     
     this.apiService.getStrategyStocks(this.selectedStrategy, this.selectedMarket, requestLimit, this.currentOffset)
       .pipe(
