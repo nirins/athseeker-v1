@@ -207,8 +207,8 @@ def validate_ath_stocks_params(params: Dict[str, Any]) -> Tuple[Dict[str, Any], 
             limit = int(params['limit'])
             if limit <= 0:
                 errors.append("limit must be a positive integer")
-            elif limit > 100:
-                errors.append("limit cannot exceed 100")
+            elif limit > 200:
+                errors.append("limit cannot exceed 200")
             else:
                 validated['limit'] = limit
         except (ValueError, TypeError):

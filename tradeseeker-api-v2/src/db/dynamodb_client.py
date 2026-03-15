@@ -627,7 +627,7 @@ class DynamoDBClient:
     def query_ath_stocks_by_beauty_score(
         self,
         market_code: str = 'US',
-        limit: int = 50,
+        limit: int = 200,
         min_beauty_score: float = 0.0
     ) -> list[dict]:
         """
