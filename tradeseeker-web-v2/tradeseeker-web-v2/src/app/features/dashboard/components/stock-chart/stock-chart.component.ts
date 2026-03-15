@@ -23,8 +23,15 @@ export class StockChartComponent implements OnInit, OnChanges, OnDestroy, AfterV
   @Input() enhancedStockData!: EnhancedStockData;
   @Input() displayMode: ChartDisplayMode = 'both';
   @Input() chartType: ChartType = 'candlestick';
-  @Input() isDetailView: boolean = false; // New input to control clickability
-  @Input() isLabelMode: boolean = false; // New input to control label button visibility
+  @Input() isDetailView: boolean = false;
+  @Input() isLabelMode: boolean = false;
+  @Input() beautyScore: number | null = null;
+  @Input() grade: string | null = null;
+
+  get displayScore(): string | null {
+    if (this.beautyScore === null) return null;
+    return (this.beautyScore / 10).toFixed(1);
+  }
   @Output() gradeSelectionRequested = new EventEmitter<{symbol: string, stockData: StockData}>();
   @ViewChild('chartCanvas', { static: false }) chartCanvas!: ElementRef<HTMLCanvasElement>;
   @ViewChild('volumeCanvas', { static: false }) volumeCanvas!: ElementRef<HTMLCanvasElement>;

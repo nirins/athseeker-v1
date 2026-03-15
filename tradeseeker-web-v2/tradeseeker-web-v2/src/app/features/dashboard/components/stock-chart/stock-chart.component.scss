@@ -64,8 +64,19 @@
         transition: color 0.2s ease;
         
         &:hover {
-          color: #10b981;
+          color: #475569;
         }
+      }
+
+      .beauty-score {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: #ffffff;
+        background: #1e293b;
+        border: 1px solid #1e293b;
+        border-radius: 3px;
+        padding: 0.1rem 0.3rem;
+        white-space: nowrap;
       }
       
       .score-btn {

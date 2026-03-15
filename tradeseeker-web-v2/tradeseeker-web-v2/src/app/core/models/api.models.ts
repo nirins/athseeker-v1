@@ -37,13 +37,15 @@ export interface ATHResponse {
  * Individual all-time high stock data
  */
 export interface ATHStock {
-  symbol: string;                    // Stock symbol with market code (e.g., "AAPL.US")
-  detection_date: string;            // Date when ATH was detected (YYYY-MM-DD)
-  ath_price: number;                 // The all-time high price that was reached
-  ath_percentage_gain: number;       // Percentage gain from lowest price to new ATH
-  market_code: string;               // Market code (e.g., "US", "BK", "CC")
-  detected_at: string;               // ISO timestamp when detection was processed
-  ttl: number;                       // Unix timestamp for TTL (30 days from detection)
+  symbol: string;
+  detection_date: string;
+  ath_price: number;
+  ath_percentage_gain: number;
+  market_code: string;
+  detected_at: string;
+  ttl: number;
+  beauty_score?: number;
+  grade?: string;
 }
 
 /**
@@ -57,16 +59,18 @@ export interface NearATHResponse {
  * Individual near all-time high stock data
  */
 export interface NearATHStock {
-  symbol: string;                    // Stock symbol with market code (e.g., "AAPL.US")
-  detection_date: string;            // Date when Near ATH was detected (YYYY-MM-DD)
-  current_price: number;             // Current price near the ATH
-  ath_price: number;                 // The actual all-time high price
-  ath_date: string;                  // Date when the ATH was reached (YYYY-MM-DD)
-  distance_from_ath_percentage: number; // Percentage below ATH (e.g., 5.2 means 5.2% below ATH)
-  percentage_gain: number;           // Percentage gain from lowest price to current price
-  market_code: string;               // Market code (e.g., "US", "BK", "CC")
-  detected_at: string;               // ISO timestamp when detection was processed
-  ttl: number;                       // Unix timestamp for TTL (30 days from detection)
+  symbol: string;
+  detection_date: string;
+  current_price: number;
+  ath_price: number;
+  ath_date: string;
+  distance_from_ath_percentage: number;
+  percentage_gain: number;
+  market_code: string;
+  detected_at: string;
+  ttl: number;
+  beauty_score?: number;
+  grade?: string;
 }
 
 /**

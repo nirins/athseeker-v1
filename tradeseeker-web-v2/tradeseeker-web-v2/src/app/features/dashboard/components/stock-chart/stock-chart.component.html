@@ -18,6 +18,7 @@
               title="Click to open {{ currentStockData.symbol }} details in new tab">
             {{ currentStockData.symbol }}
           </h3>
+          <span class="beauty-score" *ngIf="beautyScore !== null">{{ displayScore }}</span>
           <button 
             class="score-btn" 
             *ngIf="isLabelMode"

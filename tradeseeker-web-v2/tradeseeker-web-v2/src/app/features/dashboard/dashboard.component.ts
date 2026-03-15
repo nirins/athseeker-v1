@@ -38,6 +38,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   
   goldenCrosses: string[] = [];
   stockDataArray: StockData[] = [];
+  beautyScoreMap: Map<string, number> = new Map();
   isLoading = false;
   error: string | null = null;
   
@@ -122,6 +123,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       // Reset pagination state
       this.currentOffset = 0;
       this.allSymbols = [];
+      this.beautyScoreMap = new Map();
       this.hasMoreData = false;
 
       // Clear existing data to show loading state
@@ -153,6 +155,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
           // Extract symbols from the data array
           const symbols = response.data.map(item => item.symbol);
+          
+          // Build beauty score map for ATH/near-ATH
+          if (this.selectedStrategy === 'ath' || this.selectedStrategy === 'near-ath') {
+            response.data.forEach((item: any) => {
+              if (item.beauty_score != null) {
+                this.beautyScoreMap.set(item.symbol, item.beauty_score);
+              }
+            });
+          }
           
           // Debug: Log the first 10 symbols from API response
           console.log('API Response - First 10 symbols in order:', symbols.slice(0, 10));
