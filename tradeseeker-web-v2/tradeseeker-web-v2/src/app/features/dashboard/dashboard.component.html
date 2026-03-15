@@ -46,7 +46,7 @@
 
   <div *ngIf="isLoading && stockDataArray.length === 0" class="loading-container">
     <app-loading-spinner></app-loading-spinner>
-    <p>Loading {{ selectedStrategy === 'golden-cross' ? 'golden cross' : selectedStrategy === 'death-cross' ? 'death cross' : 'all-time high' }} data...</p>
+    <p>Loading {{ selectedStrategy === 'golden-cross' ? 'golden cross' : selectedStrategy === 'death-cross' ? 'death cross' : selectedStrategy === 'near-ath' ? 'near ATH' : 'all-time high' }} data...</p>
   </div>
 
   <div *ngIf="error" class="error-container">
@@ -58,7 +58,12 @@
     </app-error-message>
   </div>
 
-  <div *ngIf="!isLoading && !error && stockDataArray.length === 0" class="empty-state">
+  <div *ngIf="!isLoading && !error && allSymbols.length > 0 && stockDataArray.length === 0" class="loading-container">
+    <app-loading-spinner></app-loading-spinner>
+    <p>Rendering charts...</p>
+  </div>
+
+  <div *ngIf="!isLoading && !error && stockDataArray.length === 0 && allSymbols.length === 0" class="empty-state">
     <p>No {{ selectedStrategy === 'golden-cross' ? 'golden cross' : selectedStrategy === 'death-cross' ? 'death cross' : selectedStrategy === 'near-ath' ? 'near ATH' : 'all-time high' }} signals found for {{ selectedMarket }} market.</p>
     <button (click)="onRefresh()" class="refresh-button">Refresh</button>
   </div>
