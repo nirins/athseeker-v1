@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, forkJoin, from, throwError } from 'rxjs';
-import { map, catchError, retry, mergeMap, toArray, filter } from 'rxjs/operators';
+import { Observable, forkJoin, from, throwError, of } from 'rxjs';
+import { map, catchError, retry, mergeMap, toArray, filter, tap } from 'rxjs/operators';
 import { GoldenCrossResponse, StockData, StockDataResponse, RawStockData, MovingAveragePoint, ATHResponse, NearATHResponse } from '../models';
 import { environment } from '../../../environments/environment';
 
@@ -11,6 +11,9 @@ import { environment } from '../../../environments/environment';
 export class ApiService {
   private readonly baseUrl = environment.apiBaseUrl;
   private readonly MAX_CONCURRENT_REQUESTS = 6;
+  private readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+  private stockCache = new Map<string, { data: StockData; timestamp: number }>();
 
   constructor(private http: HttpClient) {}
 
@@ -139,20 +142,25 @@ export class ApiService {
    * Fetch detailed stock data for a symbol
    */
   getStockData(symbol: string, days?: number): Observable<StockData> {
+    const cacheKey = days ? `${symbol}_${days}` : symbol;
+    const cached = this.stockCache.get(cacheKey);
+
+    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL_MS) {
+      return of(cached.data);
+    }
+
     let url = `${this.baseUrl}/stocks/${symbol}`;
-    
-    // Add days parameter if provided
     if (days) {
       url += `?days=${days}`;
     }
-    
+
     return this.http.get<any>(url).pipe(
       retry(2),
       map(response => {
-        // Handle nested data structure
         const stockData = response.data || response;
         return this.validateStockData(stockData);
       }),
+      tap(data => this.stockCache.set(cacheKey, { data, timestamp: Date.now() })),
       catchError((error) => this.handleStockDataError(error, symbol))
     );
   }
