@@ -135,9 +135,23 @@ export class DashboardComponent implements OnInit, OnDestroy {
    * Load a page of stocks with fallback to client-side pagination
    */
   private loadStockPageWithFallback(): void {
-    // For ATH/Near-ATH strategy, fetch all data on first load since API doesn't support proper pagination
+    // For ATH/Near-ATH on load more, allSymbols is already populated — skip API call
+    if ((this.selectedStrategy === 'ath' || this.selectedStrategy === 'near-ath') && this.currentOffset > 0) {
+      const startIndex = this.currentOffset;
+      const endIndex = startIndex + this.PAGE_SIZE;
+      const pageSymbols = this.allSymbols.slice(startIndex, endIndex);
+      this.hasMoreData = endIndex < this.allSymbols.length;
+      const newSymbols = pageSymbols.filter(symbol => !this.goldenCrosses.includes(symbol));
+      this.goldenCrosses = [...this.goldenCrosses, ...newSymbols];
+      this.fetchStockDataAsync(newSymbols);
+      this.isLoading = false;
+      this.isLoadingMore = false;
+      this.refreshInProgress = false;
+      return;
+    }
+
     const shouldFetchAll = (this.selectedStrategy === 'ath' || this.selectedStrategy === 'near-ath') && this.currentOffset === 0;
-    const requestLimit = shouldFetchAll ? 1000 : this.PAGE_SIZE; // Use max allowed limit (1000) to get ATH data
+    const requestLimit = shouldFetchAll ? 1000 : this.PAGE_SIZE;
     
     this.apiService.getStrategyStocks(this.selectedStrategy, this.selectedMarket, requestLimit, this.currentOffset)
       .pipe(
@@ -283,33 +297,39 @@ export class DashboardComponent implements OnInit, OnDestroy {
    * Fetch stock data asynchronously and add to array as they arrive
    */
   private fetchStockDataAsync(symbols: string[]): void {
-    // Deduplicate symbols before fetching
     const uniqueSymbols = [...new Set(symbols)];
-    
-    // Create a map to store results and maintain order
-    const stockDataMap = new Map<string, StockData>();
-    let completedCount = 0;
-    const totalSymbols = uniqueSymbols.length;
-    
+
+    // Pre-fill array with nulls to reserve positions
+    const orderedData: (StockData | null)[] = new Array(uniqueSymbols.length).fill(null);
+    // Remember the base offset into stockDataArray for this batch
+    const baseIndex = this.stockDataArray.length;
+
     uniqueSymbols.forEach((symbol, index) => {
       this.apiService.getStockData(symbol).pipe(
         takeUntil(this.destroy$),
         catchError(error => {
           console.error(`Error fetching data for ${symbol}:`, error);
-          // Don't add to array if failed, just continue
           return of(null);
         })
       ).subscribe(stockData => {
-        completedCount++;
-        
         if (stockData) {
-          // Store in map with original index to maintain order
-          stockDataMap.set(symbol, stockData);
+          orderedData[index] = stockData;
         }
-        
-        // Only update when all requests are complete to maintain proper order
-        if (completedCount === totalSymbols) {
-          this.updateStockDataArrayInOrder(uniqueSymbols, stockDataMap);
+
+        // Append consecutive filled slots from where we left off
+        const currentBatchLength = this.stockDataArray.length - baseIndex;
+        let appendCount = 0;
+        for (let i = currentBatchLength; i < orderedData.length; i++) {
+          if (orderedData[i] !== null) {
+            appendCount++;
+          } else {
+            break;
+          }
+        }
+
+        if (appendCount > 0) {
+          const newItems = orderedData.slice(currentBatchLength, currentBatchLength + appendCount) as StockData[];
+          this.stockDataArray = [...this.stockDataArray, ...newItems];
         }
       });
     });
