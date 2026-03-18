@@ -71,6 +71,17 @@ variable "openai_api_key" {
   sensitive   = true
 }
 
+variable "aws_account_id" {
+  description = "AWS account ID"
+  type        = string
+}
+
+variable "cognito_user_pool_id" {
+  description = "Existing Cognito User Pool ID to attach the PostConfirmation trigger to"
+  type        = string
+  default     = "ap-southeast-1_ZB2oGErmf"
+}
+
 # Optional Cognito variables (uncomment when enabling Cognito)
 # variable "cognito_callback_urls" {
 #   description = "Callback URLs for Cognito (Angular app URLs)"
