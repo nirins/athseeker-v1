@@ -38,6 +38,8 @@ def handle_get_watchlist(query_params: Dict[str, Any]) -> dict:
             KeyConditionExpression=Key('user_id').eq(user_id)
         )
         items = result.get('Items', [])
+        # Sort by beauty_score descending, items without score go last
+        items.sort(key=lambda x: float(x.get('beauty_score', 0)), reverse=True)
         symbols = [item['symbol'] for item in items]
         beauty_scores = {
             item['symbol']: float(item['beauty_score'])
