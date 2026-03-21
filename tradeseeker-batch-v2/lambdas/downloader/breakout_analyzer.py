@@ -61,14 +61,88 @@ class BreakoutAnalyzer:
             
             # Use new model system if available
             if MODEL_SYSTEM_AVAILABLE:
-                return self._calculate_with_model_system(price_data, ath_index)
+                result = self._calculate_with_model_system(price_data, ath_index)
             else:
                 # Fallback to original calculation
-                return self._calculate_with_original_method(price_data, ath_index)
+                result = self._calculate_with_original_method(price_data, ath_index)
+
+            # Apply price range volatility penalty using 360-day window
+            result = self._apply_price_range_penalty(result, price_data, ath_index)
+
+            return result
                 
         except Exception as e:
             logger.error(f"Error calculating breakout beauty score: {str(e)}")
             return {'beauty_score': 0, 'reason': f'Error: {str(e)}'}
+
+    def _apply_price_range_penalty(self, result: Dict, price_data: List[Dict], ath_index: int) -> Dict:
+        """
+        Apply a penalty if the 360-day price range is more than double (high/low > 2x).
+
+        If (max_high - min_low) / min_low > 1.0, the stock has more than doubled in range,
+        indicating high volatility. A proportional penalty is applied to the beauty score.
+
+        Args:
+            result: Current beauty score result dict
+            price_data: Full price data list
+            ath_index: Index of the ATH day in price_data
+
+        Returns:
+            Updated result dict with penalty applied
+        """
+        try:
+            # Use up to 360 trading days ending at the ATH date
+            start_index = max(0, ath_index - 360)
+            window = price_data[start_index:ath_index + 1]
+
+            if len(window) < 30:
+                return result  # Not enough data to assess
+
+            highs = [float(r['high']) for r in window if r.get('high') is not None]
+            lows = [float(r['low']) for r in window if r.get('low') is not None and float(r['low']) > 0]
+
+            if not highs or not lows:
+                return result
+
+            max_high = max(highs)
+            min_low = min(lows)
+
+            if min_low <= 0:
+                return result
+
+            price_range_ratio = (max_high - min_low) / min_low  # > 1.0 means more than doubled
+
+            if price_range_ratio > 1.0:
+                # Penalty proportional to how much it exceeds 1.0 (doubled)
+                # e.g. ratio=1.5 → excess=0.5 → penalty=25 points
+                # e.g. ratio=2.0 → excess=1.0 → penalty=50 points (capped at 50)
+                excess = price_range_ratio - 1.0
+                penalty = min(50, excess * 50)
+                original_score = result.get('beauty_score', 0)
+                penalised_score = max(0, round(original_score - penalty, 1))
+
+                logger.info(
+                    f"Price range penalty: max_high={max_high:.2f}, min_low={min_low:.2f}, "
+                    f"ratio={price_range_ratio:.2f}, penalty={penalty:.1f}, "
+                    f"score {original_score} -> {penalised_score}"
+                )
+
+                result = dict(result)
+                result['beauty_score'] = penalised_score
+                result['price_range_ratio'] = round(price_range_ratio, 2)
+                result['price_range_penalty'] = round(penalty, 1)
+                if 'grade' in result:
+                    result['grade'] = self._get_beauty_grade(penalised_score)
+            else:
+                result = dict(result)
+                result['price_range_ratio'] = round(price_range_ratio, 2)
+                result['price_range_penalty'] = 0
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Error applying price range penalty: {str(e)}")
+            return result
     
     def _calculate_with_model_system(self, price_data: List[Dict], ath_index: int) -> Dict:
         """Calculate beauty score using the new model system"""
