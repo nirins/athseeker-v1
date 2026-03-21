@@ -73,8 +73,8 @@ class ATHDetector:
                 
                 # Check if this is an ATH (current price > previous maximum)
                 if current_price > running_max:
-                    # Check if this record is within the last 21 records
-                    if i >= len(price_data) - 21:
+                    # Check if this record is within the last 14 records
+                    if i >= len(price_data) - 14:
                         # Keep track of the highest ATH in the recent period
                         if highest_ath_record is None or current_price > highest_ath_record['ath_price']:
                             percentage_gain = ((current_price - running_min) / running_min) * 100
@@ -86,7 +86,7 @@ class ATHDetector:
                                 'ath_percentage_gain': round(percentage_gain, 2),
                                 'market_code': market_code,
                                 'detected_at': datetime.now().isoformat(),
-                                'ttl': int((datetime.now() + timedelta(days=30)).timestamp())
+                                'ttl': int((datetime.now() + timedelta(days=14)).timestamp())
                             }
                 
                 # Update running maximum and minimum
