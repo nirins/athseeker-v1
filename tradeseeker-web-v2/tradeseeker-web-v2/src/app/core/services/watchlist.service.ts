@@ -25,16 +25,23 @@ export class WatchlistService {
     return this.watchlistSymbols$.value.has(symbol);
   }
 
-  loadWatchlist(): Observable<string[]> {
-    return this.http.get<{ data: { symbols: string[] } }>(`${this.baseUrl}/watchlist?user_id=${this.userId}`).pipe(
-      map(res => res.data?.symbols ?? []),
-      tap(symbols => this.watchlistSymbols$.next(new Set(symbols))),
-      catchError(() => of([]))
+  loadWatchlist(): Observable<{ symbols: string[]; beautyScores: Record<string, number> }> {
+    return this.http.get<{ data: { symbols: string[]; beauty_scores: Record<string, number> } }>(
+      `${this.baseUrl}/watchlist?user_id=${this.userId}`
+    ).pipe(
+      map(res => ({
+        symbols: res.data?.symbols ?? [],
+        beautyScores: res.data?.beauty_scores ?? {}
+      })),
+      tap(({ symbols }) => this.watchlistSymbols$.next(new Set(symbols))),
+      catchError(() => of({ symbols: [], beautyScores: {} }))
     );
   }
 
-  addToWatchlist(symbol: string): Observable<any> {
-    return this.http.post(`${this.baseUrl}/watchlist`, { user_id: this.userId, symbol }).pipe(
+  addToWatchlist(symbol: string, beautyScore?: number): Observable<any> {
+    const body: any = { user_id: this.userId, symbol };
+    if (beautyScore != null) body.beauty_score = beautyScore;
+    return this.http.post(`${this.baseUrl}/watchlist`, body).pipe(
       tap(() => {
         const current = new Set(this.watchlistSymbols$.value);
         current.add(symbol);
@@ -57,9 +64,9 @@ export class WatchlistService {
     );
   }
 
-  toggle(symbol: string): Observable<any> {
+  toggle(symbol: string, beautyScore?: number): Observable<any> {
     return this.isWatched(symbol)
       ? this.removeFromWatchlist(symbol)
-      : this.addToWatchlist(symbol);
+      : this.addToWatchlist(symbol, beautyScore);
   }
 }

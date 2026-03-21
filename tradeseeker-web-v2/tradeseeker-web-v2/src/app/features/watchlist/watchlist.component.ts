@@ -49,7 +49,9 @@ export class WatchlistComponent implements OnInit, OnDestroy {
     this.watchlistService.loadWatchlist().pipe(
       takeUntil(this.destroy$)
     ).subscribe({
-      next: (symbols) => {
+      next: ({ symbols, beautyScores }) => {
+        // Populate beauty score map
+        this.beautyScoreMap = new Map(Object.entries(beautyScores));
         if (symbols.length === 0) {
           this.isLoading = false;
           return;

@@ -37,8 +37,35 @@ def handle_get_watchlist(query_params: Dict[str, Any]) -> dict:
         result = table.query(
             KeyConditionExpression=Key('user_id').eq(user_id)
         )
-        symbols = [item['symbol'] for item in result.get('Items', [])]
-        return success_response({'symbols': symbols, 'count': len(symbols)})
+        items = result.get('Items', [])
+        symbols = [item['symbol'] for item in items]
+        beauty_scores = {
+            item['symbol']: float(item['beauty_score'])
+            for item in items
+            if 'beauty_score' in item
+        }
+
+        # For symbols missing beauty_score, look up from ATH and near-ATH tables
+        missing = [s for s in symbols if s not in beauty_scores]
+        if missing:
+            region = os.environ.get('LAMBDA_REGION', 'ap-southeast-1')
+            dynamodb = boto3.resource('dynamodb', region_name=region)
+            for table_name_env in ('ATH_STOCKS_TABLE', 'NEAR_ATH_STOCKS_TABLE'):
+                table_name = os.environ.get(table_name_env)
+                if not table_name:
+                    continue
+                lookup_table = dynamodb.Table(table_name)
+                for symbol in list(missing):
+                    try:
+                        resp = lookup_table.get_item(Key={'symbol': symbol})
+                        score = resp.get('Item', {}).get('beauty_score')
+                        if score is not None:
+                            beauty_scores[symbol] = float(score)
+                            missing.remove(symbol)
+                    except Exception:
+                        pass
+
+        return success_response({'symbols': symbols, 'beauty_scores': beauty_scores, 'count': len(symbols)})
     except ClientError as e:
         logger.error(f"DynamoDB error getting watchlist: {e}")
         return error_response("Failed to get watchlist", 500)
@@ -47,6 +74,7 @@ def handle_get_watchlist(query_params: Dict[str, Any]) -> dict:
 def handle_add_to_watchlist(body: Dict[str, Any]) -> dict:
     user_id = (body or {}).get('user_id', '').strip()
     symbol = (body or {}).get('symbol', '').strip().upper()
+    beauty_score = (body or {}).get('beauty_score')
 
     if not user_id:
         return error_response("user_id is required", 400)
@@ -54,8 +82,12 @@ def handle_add_to_watchlist(body: Dict[str, Any]) -> dict:
         return error_response("symbol is required", 400)
 
     try:
+        from decimal import Decimal
+        item = {'user_id': user_id, 'symbol': symbol}
+        if beauty_score is not None:
+            item['beauty_score'] = Decimal(str(beauty_score))
         table = _get_table()
-        table.put_item(Item={'user_id': user_id, 'symbol': symbol})
+        table.put_item(Item=item)
         return success_response({'user_id': user_id, 'symbol': symbol, 'action': 'added'})
     except ClientError as e:
         logger.error(f"DynamoDB error adding to watchlist: {e}")

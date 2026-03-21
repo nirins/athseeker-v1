@@ -50,7 +50,7 @@ export class StockChartComponent implements OnInit, OnChanges, OnDestroy, AfterV
 
   toggleWatchlist(event: MouseEvent): void {
     event.stopPropagation();
-    this.watchlistService.toggle(this.currentStockData.symbol).subscribe();
+    this.watchlistService.toggle(this.currentStockData.symbol, this.beautyScore ?? undefined).subscribe();
   }
 
   private isMobileDevice(): boolean {
