@@ -41,6 +41,7 @@
 
 .watchlist-nav-btn {
   padding: 0.125rem 0.5rem;
+  height: 1.25rem;
   background: white;
   color: #666;
   border: 1px solid #ddd;
@@ -109,6 +110,9 @@
   box-sizing: border-box;
   cursor: pointer;
   transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover:not(:disabled) {
     background: #334155;
@@ -122,6 +126,7 @@
 
 .label-training-toggle {
   padding: 0.125rem 0.5rem;
+  height: 1.25rem;
   background: white;
   color: #666;
   border: 1px solid #ddd;
