@@ -45,26 +45,6 @@ def handle_get_watchlist(query_params: Dict[str, Any]) -> dict:
             if 'beauty_score' in item
         }
 
-        # For symbols missing beauty_score, look up from ATH and near-ATH tables
-        missing = [s for s in symbols if s not in beauty_scores]
-        if missing:
-            region = os.environ.get('LAMBDA_REGION', 'ap-southeast-1')
-            dynamodb = boto3.resource('dynamodb', region_name=region)
-            for table_name_env in ('ATH_STOCKS_TABLE', 'NEAR_ATH_STOCKS_TABLE'):
-                table_name = os.environ.get(table_name_env)
-                if not table_name:
-                    continue
-                lookup_table = dynamodb.Table(table_name)
-                for symbol in list(missing):
-                    try:
-                        resp = lookup_table.get_item(Key={'symbol': symbol})
-                        score = resp.get('Item', {}).get('beauty_score')
-                        if score is not None:
-                            beauty_scores[symbol] = float(score)
-                            missing.remove(symbol)
-                    except Exception:
-                        pass
-
         return success_response({'symbols': symbols, 'beauty_scores': beauty_scores, 'count': len(symbols)})
     except ClientError as e:
         logger.error(f"DynamoDB error getting watchlist: {e}")
