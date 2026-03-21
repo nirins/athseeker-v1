@@ -1,11 +1,12 @@
 # Makefile for TradeSeeker Batch Processing System
 
-.PHONY: help package deploy deploy-downloader deploy-all clean ath-info ath-clear ath-recreate
+.PHONY: help package deploy deploy-downloader deploy-x-poster deploy-all clean ath-info ath-clear ath-recreate
 
 # Default target
 help:
 	@echo "Available targets:"
 	@echo "  deploy-downloader  - Package and deploy downloader lambda"
+	@echo "  deploy-x-poster    - Package and deploy x-poster lambda"
 	@echo "  deploy-all         - Package and deploy all lambdas"
 	@echo "  package            - Package all lambda functions"
 	@echo "  deploy             - Deploy infrastructure with terraform"
@@ -23,12 +24,20 @@ deploy-downloader:
 	@echo "Deploying with terraform..."
 	cd terraform && terraform apply -auto-approve
 
+# Package and deploy x-poster lambda
+deploy-x-poster:
+	@echo "Packaging x-poster lambda..."
+	./scripts/package-x-poster.sh
+	@echo "Deploying with terraform..."
+	cd terraform && terraform apply -auto-approve
+
 # Package and deploy all lambdas
 deploy-all:
 	@echo "Packaging all lambda functions..."
 	./scripts/package-task-generator.sh
 	./scripts/package-downloader.sh
 	./scripts/package-dlq-replay.sh
+	./scripts/package-x-poster.sh
 	@echo "Deploying with terraform..."
 	cd terraform && terraform apply -auto-approve
 
@@ -38,6 +47,7 @@ package:
 	./scripts/package-task-generator.sh
 	./scripts/package-downloader.sh
 	./scripts/package-dlq-replay.sh
+	./scripts/package-x-poster.sh
 
 # Deploy infrastructure only (assumes packages are already built)
 deploy:
@@ -50,6 +60,7 @@ clean:
 	rm -f lambdas/task-generator/task-generator.zip
 	rm -f lambdas/downloader/downloader.zip
 	rm -f lambdas/dlq-replay/dlq-replay.zip
+	rm -f lambdas/x-poster/x-poster.zip
 	rm -rf lambdas/*/package/
 	@echo "Clean complete"
 

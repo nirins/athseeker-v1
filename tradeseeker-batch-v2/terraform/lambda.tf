@@ -108,3 +108,64 @@ resource "aws_lambda_function" "dlq_replay" {
     }
   )
 }
+
+# X Poster Lambda
+resource "aws_lambda_function" "x_poster" {
+  filename         = "${path.module}/../lambdas/x-poster/x-poster.zip"
+  function_name    = local.x_poster_name
+  role             = aws_iam_role.x_poster.arn
+  handler          = "handler.handler"
+  source_code_hash = fileexists("${path.module}/../lambdas/x-poster/x-poster.zip") ? filebase64sha256("${path.module}/../lambdas/x-poster/x-poster.zip") : null
+  runtime          = "python3.12"
+  timeout          = 60
+  memory_size      = 256
+
+  environment {
+    variables = {
+      ENVIRONMENT    = local.environment
+      ATH_TABLE_NAME = aws_dynamodb_table.ath_detections.name
+      X_SECRET_NAME  = local.x_secret_name
+      MARKET_CODE    = "US"
+    }
+  }
+
+  depends_on = [
+    aws_cloudwatch_log_group.x_poster
+  ]
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = local.x_poster_name
+    }
+  )
+}
+
+resource "aws_cloudwatch_log_group" "x_poster" {
+  name              = "/aws/lambda/${local.x_poster_name}"
+  retention_in_days = 14
+  tags              = local.common_tags
+}
+
+# EventBridge schedule to trigger X poster daily
+resource "aws_cloudwatch_event_rule" "x_poster_schedule" {
+  name                = "${local.x_poster_name}-schedule"
+  description         = "Daily trigger for X poster Lambda"
+  schedule_expression = "cron(0 22 * * ? *)"  # 5 AM Thailand time (UTC+7)
+  state               = "ENABLED"
+  tags                = local.common_tags
+}
+
+resource "aws_cloudwatch_event_target" "x_poster_schedule" {
+  rule      = aws_cloudwatch_event_rule.x_poster_schedule.name
+  target_id = "x-poster-lambda"
+  arn       = aws_lambda_function.x_poster.arn
+}
+
+resource "aws_lambda_permission" "x_poster_eventbridge" {
+  statement_id  = "AllowEventBridgeInvokeXPoster"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.x_poster.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.x_poster_schedule.arn
+}

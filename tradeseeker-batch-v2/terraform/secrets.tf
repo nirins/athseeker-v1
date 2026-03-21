@@ -25,3 +25,30 @@ resource "aws_secretsmanager_secret" "eodhd_api_token" {
 # aws secretsmanager put-secret-value \
 #   --secret-id ${local.eodhd_secret_name} \
 #   --secret-string '{"api_token":"69917262e3a876.40642506"}'
+
+# X (Twitter) API credentials for @ATHSeekerX
+resource "aws_secretsmanager_secret" "x_credentials" {
+  name        = local.x_secret_name
+  description = "X (Twitter) API credentials for ATHSeekerX bot - ${local.environment}"
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = local.x_secret_name
+    }
+  )
+}
+
+resource "aws_secretsmanager_secret_version" "x_credentials" {
+  secret_id = aws_secretsmanager_secret.x_credentials.id
+  secret_string = jsonencode({
+    consumer_key        = "REPLACE_ME"
+    consumer_secret     = "REPLACE_ME"
+    access_token        = "REPLACE_ME"
+    access_token_secret = "REPLACE_ME"
+  })
+
+  lifecycle {
+    ignore_changes = [secret_string]
+  }
+}

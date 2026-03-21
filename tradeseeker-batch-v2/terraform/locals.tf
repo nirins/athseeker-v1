@@ -46,6 +46,7 @@ locals {
   task_generator_name = "${local.name_prefix}-task-generator"
   downloader_name     = "${local.name_prefix}-downloader"
   dlq_replay_name     = "${local.name_prefix}-dlq-replay"
+  x_poster_name       = "${local.name_prefix}-x-poster"
   
   # SSM Parameter paths
   markets_parameter_name      = "/ts-batch-v2/${local.environment}/markets"
@@ -53,6 +54,7 @@ locals {
   
   # Secrets Manager
   eodhd_secret_name = "ts-batch-v2-${local.environment}-eodhd-api-token"
+  x_secret_name     = "ts-batch-v2-${local.environment}-x-credentials"
   
   # EventBridge
   schedule_name = "${local.name_prefix}-daily-trigger"

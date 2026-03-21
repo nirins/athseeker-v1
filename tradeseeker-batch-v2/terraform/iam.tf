@@ -216,3 +216,50 @@ resource "aws_iam_role_policy" "dlq_replay" {
     ]
   })
 }
+
+# X Poster Lambda Role
+resource "aws_iam_role" "x_poster" {
+  name = "${local.x_poster_name}-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action    = "sts:AssumeRole"
+        Effect    = "Allow"
+        Principal = { Service = "lambda.amazonaws.com" }
+      }
+    ]
+  })
+
+  tags = local.common_tags
+}
+
+resource "aws_iam_role_policy" "x_poster" {
+  name = "${local.x_poster_name}-policy"
+  role = aws_iam_role.x_poster.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = ["logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents"]
+        Resource = "arn:aws:logs:${var.aws_region}:${local.aws_account_id}:log-group:/aws/lambda/${local.x_poster_name}:*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["dynamodb:Query"]
+        Resource = [
+          aws_dynamodb_table.ath_detections.arn,
+          "${aws_dynamodb_table.ath_detections.arn}/index/*"
+        ]
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["secretsmanager:GetSecretValue"]
+        Resource = "arn:aws:secretsmanager:${var.aws_region}:${local.aws_account_id}:secret:${local.x_secret_name}-*"
+      }
+    ]
+  })
+}
