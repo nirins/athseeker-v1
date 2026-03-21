@@ -7,6 +7,7 @@ import 'chartjs-adapter-date-fns';
 import { StockData, ChartDisplayMode, ChartType, EnhancedStockData } from '../../../../core/models';
 import { LoadingSpinnerComponent } from '../../../../shared/components/loading-spinner/loading-spinner.component';
 import { ErrorMessageComponent } from '../../../../shared/components/error-message/error-message.component';
+import { WatchlistService } from '../../../../core/services/watchlist.service';
 
 // Register Chart.js components
 Chart.register(...registerables, CandlestickController, CandlestickElement, OhlcController, OhlcElement, TimeScale, LinearScale);
@@ -41,7 +42,16 @@ export class StockChartComponent implements OnInit, OnChanges, OnDestroy, AfterV
   isLoading = false;
   error: string | null = null;
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, private watchlistService: WatchlistService) {}
+
+  get isWatched(): boolean {
+    return this.watchlistService.isWatched(this.currentStockData?.symbol);
+  }
+
+  toggleWatchlist(event: MouseEvent): void {
+    event.stopPropagation();
+    this.watchlistService.toggle(this.currentStockData.symbol).subscribe();
+  }
 
   private isMobileDevice(): boolean {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 

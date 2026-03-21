@@ -74,6 +74,7 @@ variable "openai_api_key" {
 variable "aws_account_id" {
   description = "AWS account ID"
   type        = string
+  default     = "894546098844"
 }
 
 variable "cognito_user_pool_id" {

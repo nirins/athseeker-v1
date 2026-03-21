@@ -639,6 +639,9 @@ resource "aws_api_gateway_deployment" "tradeseeker_api" {
     aws_api_gateway_integration.stock_symbol_lambda,
     aws_api_gateway_integration.stock_history_lambda,
     aws_api_gateway_integration.training_data_save_by_grade_lambda,
+    aws_api_gateway_integration.watchlist_get_lambda,
+    aws_api_gateway_integration.watchlist_post_lambda,
+    aws_api_gateway_integration.watchlist_delete_lambda,
     aws_api_gateway_integration.golden_crosses_options,
     aws_api_gateway_integration.death_crosses_options,
     aws_api_gateway_integration.ath_options,
@@ -647,6 +650,7 @@ resource "aws_api_gateway_deployment" "tradeseeker_api" {
     aws_api_gateway_integration.stock_symbol_options,
     aws_api_gateway_integration.stock_history_options,
     aws_api_gateway_integration.training_data_save_by_grade_options,
+    aws_api_gateway_integration.watchlist_options,
     aws_api_gateway_method_response.golden_crosses_get,
     aws_api_gateway_method_response.death_crosses_get,
     aws_api_gateway_method_response.ath_get,
@@ -654,7 +658,10 @@ resource "aws_api_gateway_deployment" "tradeseeker_api" {
     aws_api_gateway_method_response.openai_summary_get,
     aws_api_gateway_method_response.stock_symbol_get,
     aws_api_gateway_method_response.stock_history_get,
-    aws_api_gateway_method_response.training_data_save_by_grade_post
+    aws_api_gateway_method_response.training_data_save_by_grade_post,
+    aws_api_gateway_method_response.watchlist_get,
+    aws_api_gateway_method_response.watchlist_post,
+    aws_api_gateway_method_response.watchlist_delete,
   ]
 
   triggers = {
@@ -669,6 +676,7 @@ resource "aws_api_gateway_deployment" "tradeseeker_api" {
       aws_api_gateway_resource.stock_history.id,
       aws_api_gateway_resource.training_data.id,
       aws_api_gateway_resource.training_data_save_by_grade.id,
+      aws_api_gateway_resource.watchlist.id,
       aws_api_gateway_method.golden_crosses_get.id,
       aws_api_gateway_method.death_crosses_get.id,
       aws_api_gateway_method.ath_get.id,
@@ -677,6 +685,10 @@ resource "aws_api_gateway_deployment" "tradeseeker_api" {
       aws_api_gateway_method.stock_symbol_get.id,
       aws_api_gateway_method.stock_history_get.id,
       aws_api_gateway_method.training_data_save_by_grade_post.id,
+      aws_api_gateway_method.watchlist_get.id,
+      aws_api_gateway_method.watchlist_post.id,
+      aws_api_gateway_method.watchlist_delete.id,
+      aws_api_gateway_method.watchlist_options.id,
       aws_api_gateway_method.golden_crosses_options.id,
       aws_api_gateway_method.death_crosses_options.id,
       aws_api_gateway_method.ath_options.id,
@@ -693,6 +705,9 @@ resource "aws_api_gateway_deployment" "tradeseeker_api" {
       aws_api_gateway_integration.stock_symbol_lambda.id,
       aws_api_gateway_integration.stock_history_lambda.id,
       aws_api_gateway_integration.training_data_save_by_grade_lambda.id,
+      aws_api_gateway_integration.watchlist_get_lambda.id,
+      aws_api_gateway_integration.watchlist_post_lambda.id,
+      aws_api_gateway_integration.watchlist_delete_lambda.id,
       aws_api_gateway_integration.golden_crosses_options.id,
       aws_api_gateway_integration.death_crosses_options.id,
       aws_api_gateway_integration.ath_options.id,
@@ -701,6 +716,7 @@ resource "aws_api_gateway_deployment" "tradeseeker_api" {
       aws_api_gateway_integration.stock_symbol_options.id,
       aws_api_gateway_integration.stock_history_options.id,
       aws_api_gateway_integration.training_data_save_by_grade_options.id,
+      aws_api_gateway_integration.watchlist_options.id,
       aws_api_gateway_method_response.golden_crosses_get.id,
       aws_api_gateway_method_response.death_crosses_get.id,
       aws_api_gateway_method_response.ath_get.id,
@@ -709,6 +725,9 @@ resource "aws_api_gateway_deployment" "tradeseeker_api" {
       aws_api_gateway_method_response.stock_symbol_get.id,
       aws_api_gateway_method_response.stock_history_get.id,
       aws_api_gateway_method_response.training_data_save_by_grade_post.id,
+      aws_api_gateway_method_response.watchlist_get.id,
+      aws_api_gateway_method_response.watchlist_post.id,
+      aws_api_gateway_method_response.watchlist_delete.id,
     ]))
   }
 
@@ -825,6 +844,139 @@ resource "aws_api_gateway_integration_response" "training_data_save_by_grade_opt
   response_parameters = {
     "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
     "method.response.header.Access-Control-Allow-Methods" = "'POST,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+}
+
+# /watchlist resource
+resource "aws_api_gateway_resource" "watchlist" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  parent_id   = aws_api_gateway_rest_api.tradeseeker_api.root_resource_id
+  path_part   = "watchlist"
+}
+
+# GET /watchlist
+resource "aws_api_gateway_method" "watchlist_get" {
+  rest_api_id   = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id   = aws_api_gateway_resource.watchlist.id
+  http_method   = "GET"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "watchlist_get_lambda" {
+  rest_api_id             = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id             = aws_api_gateway_resource.watchlist.id
+  http_method             = aws_api_gateway_method.watchlist_get.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.tradeseeker_api.invoke_arn
+}
+
+resource "aws_api_gateway_method_response" "watchlist_get" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id = aws_api_gateway_resource.watchlist.id
+  http_method = aws_api_gateway_method.watchlist_get.http_method
+  status_code = "200"
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = true
+  }
+}
+
+# POST /watchlist
+resource "aws_api_gateway_method" "watchlist_post" {
+  rest_api_id   = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id   = aws_api_gateway_resource.watchlist.id
+  http_method   = "POST"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "watchlist_post_lambda" {
+  rest_api_id             = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id             = aws_api_gateway_resource.watchlist.id
+  http_method             = aws_api_gateway_method.watchlist_post.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.tradeseeker_api.invoke_arn
+}
+
+resource "aws_api_gateway_method_response" "watchlist_post" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id = aws_api_gateway_resource.watchlist.id
+  http_method = aws_api_gateway_method.watchlist_post.http_method
+  status_code = "200"
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = true
+  }
+}
+
+# DELETE /watchlist
+resource "aws_api_gateway_method" "watchlist_delete" {
+  rest_api_id   = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id   = aws_api_gateway_resource.watchlist.id
+  http_method   = "DELETE"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "watchlist_delete_lambda" {
+  rest_api_id             = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id             = aws_api_gateway_resource.watchlist.id
+  http_method             = aws_api_gateway_method.watchlist_delete.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.tradeseeker_api.invoke_arn
+}
+
+resource "aws_api_gateway_method_response" "watchlist_delete" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id = aws_api_gateway_resource.watchlist.id
+  http_method = aws_api_gateway_method.watchlist_delete.http_method
+  status_code = "200"
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = true
+  }
+}
+
+# OPTIONS /watchlist (CORS)
+resource "aws_api_gateway_method" "watchlist_options" {
+  rest_api_id   = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id   = aws_api_gateway_resource.watchlist.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "watchlist_options" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id = aws_api_gateway_resource.watchlist.id
+  http_method = aws_api_gateway_method.watchlist_options.http_method
+  type        = "MOCK"
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "watchlist_options" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id = aws_api_gateway_resource.watchlist.id
+  http_method = aws_api_gateway_method.watchlist_options.http_method
+  status_code = "200"
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+  response_models = {
+    "application/json" = "Empty"
+  }
+}
+
+resource "aws_api_gateway_integration_response" "watchlist_options" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id = aws_api_gateway_resource.watchlist.id
+  http_method = aws_api_gateway_method.watchlist_options.http_method
+  status_code = aws_api_gateway_method_response.watchlist_options.status_code
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods" = "'GET,POST,DELETE,OPTIONS'"
     "method.response.header.Access-Control-Allow-Origin"  = "'*'"
   }
 }

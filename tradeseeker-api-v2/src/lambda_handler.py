@@ -71,9 +71,9 @@ def lambda_handler(event: Dict[str, Any], context: Any) -> dict:
         # Extract path parameters (handle None case)
         path_params = event.get('pathParameters') or {}
         
-        # Extract request body for POST requests
+        # Extract request body for POST/DELETE requests
         body = {}
-        if method == 'POST':
+        if method in ('POST', 'DELETE'):
             body_str = event.get('body', '')
             if body_str:
                 try:

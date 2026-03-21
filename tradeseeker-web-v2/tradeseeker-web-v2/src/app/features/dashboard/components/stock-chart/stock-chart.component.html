@@ -19,6 +19,13 @@
             {{ currentStockData.symbol }}
           </h3>
           <span class="beauty-score" *ngIf="beautyScore !== null">{{ displayScore }}</span>
+          <button
+            class="watchlist-btn"
+            [class.watched]="isWatched"
+            (click)="toggleWatchlist($event)"
+            [title]="isWatched ? 'Remove from watchlist' : 'Add to watchlist'">
+            {{ isWatched ? '★' : '☆' }}
+          </button>
           <button 
             class="score-btn" 
             *ngIf="isLabelMode"

@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 import { Subject, of } from 'rxjs';
 import { switchMap, takeUntil, catchError } from 'rxjs/operators';
 import { ApiService } from '../../core/services/api.service';
+import { WatchlistService } from '../../core/services/watchlist.service';
 import { StockData, ChartDisplayMode, ChartType } from '../../core/models';
 import { MarketSelectorComponent } from './components/market-selector/market-selector.component';
 import { ChartDisplayModeSelectorComponent } from './components/chart-display-mode-selector/chart-display-mode-selector.component';
@@ -69,7 +70,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     { value: 'F', label: 'F - Failed' }
   ];
 
-  constructor(private apiService: ApiService) {}
+  constructor(private apiService: ApiService, private watchlistService: WatchlistService) {}
 
   ngOnInit(): void {
     // Restore preferences from sessionStorage (only in browser)
@@ -93,6 +94,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     // Set up market change handler with switchMap to cancel previous requests
     this.setupMarketChangeHandler();
+
+    // Load watchlist state so star buttons show correctly
+    this.watchlistService.loadWatchlist().subscribe();
 
     // Initial data fetch
     this.fetchData();

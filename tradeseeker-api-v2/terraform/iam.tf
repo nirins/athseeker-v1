@@ -55,6 +55,34 @@ resource "aws_iam_policy" "dynamodb_read" {
   }
 }
 
+# DynamoDB watchlist read/write policy
+resource "aws_iam_policy" "dynamodb_watchlist" {
+  name        = "${var.project_name}-${var.environment}-dynamodb-watchlist"
+  description = "Allow Lambda to read/write the watchlist table"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:Query",
+          "dynamodb:PutItem",
+          "dynamodb:DeleteItem"
+        ]
+        Resource = [
+          aws_dynamodb_table.watchlist.arn
+        ]
+      }
+    ]
+  })
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-dynamodb-watchlist"
+  }
+}
+
 # Secrets Manager read policy
 resource "aws_iam_policy" "secrets_manager_read" {
   name        = "${var.project_name}-${var.environment}-secrets-read"
@@ -93,11 +121,18 @@ resource "aws_iam_role_policy_attachment" "lambda_dynamodb" {
   policy_arn = aws_iam_policy.dynamodb_read.arn
 }
 
+# Attach DynamoDB watchlist policy to Lambda role
+resource "aws_iam_role_policy_attachment" "lambda_dynamodb_watchlist" {
+  role       = aws_iam_role.lambda_execution.name
+  policy_arn = aws_iam_policy.dynamodb_watchlist.arn
+}
+
 # Attach AWS managed policy for Lambda basic execution (CloudWatch Logs)
 resource "aws_iam_role_policy_attachment" "lambda_basic_execution" {
   role       = aws_iam_role.lambda_execution.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
+
 # S3 write policy for training data
 resource "aws_iam_policy" "s3_training_data_write" {
   name        = "${var.project_name}-${var.environment}-s3-training-data-write"

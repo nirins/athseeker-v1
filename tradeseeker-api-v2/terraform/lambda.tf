@@ -22,6 +22,7 @@ resource "aws_lambda_function" "tradeseeker_api" {
       EODHD_SECRET_NAME            = var.eodhd_secret_name
       OPENAI_SECRET_NAME           = aws_secretsmanager_secret.openai_api_key.name
       TRAINING_DATA_BUCKET         = aws_s3_bucket.training_data.bucket
+      WATCHLIST_TABLE              = aws_dynamodb_table.watchlist.name
     }
   }
 

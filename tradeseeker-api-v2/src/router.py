@@ -16,6 +16,7 @@ from src.handlers.stock_history import handle_stock_history
 from src.handlers.ath_stocks import handle_ath_stocks
 from src.handlers.near_ath_stocks import handle_near_ath_stocks
 from src.handlers.openai_summary import handle_openai_summary
+from src.handlers.watchlist import handle_get_watchlist, handle_add_to_watchlist, handle_remove_from_watchlist
 from src.formatters import error_response
 
 logger = logging.getLogger(__name__)
@@ -39,6 +40,9 @@ def route_request(
     - GET /openai-summary -> openai_summary_handler
     - GET /stocks/{symbol} -> stock_price_handler
     - GET /stocks/{symbol}/history -> stock_history_handler
+    - GET /watchlist -> watchlist_handler (get)
+    - POST /watchlist -> watchlist_handler (add)
+    - DELETE /watchlist -> watchlist_handler (remove)
     - POST /training-data/save-by-grade -> save_training_data_handler
     
     Args:
@@ -63,7 +67,11 @@ def route_request(
     # Handle POST requests
     elif method == 'POST':
         return _route_post_request(normalized_path, body or {})
-    
+
+    # Handle DELETE requests
+    elif method == 'DELETE':
+        return _route_delete_request(normalized_path, body or {})
+
     # Unsupported method
     else:
         logger.warning(f"Unsupported HTTP method: {method}")
@@ -100,7 +108,12 @@ def _route_get_request(path: str, query_params: Dict[str, Any]) -> dict:
     if path == '/openai-summary':
         logger.info("Routing to openai_summary handler")
         return handle_openai_summary(query_params)
-    
+
+    # Route: GET /watchlist
+    if path == '/watchlist':
+        logger.info("Routing to watchlist handler (get)")
+        return handle_get_watchlist(query_params)
+
     # Route: GET /stocks/{symbol}/history
     history_pattern = r'^/stocks/([^/]+)/history$'
     history_match = re.match(history_pattern, path)
@@ -129,23 +142,36 @@ def _route_get_request(path: str, query_params: Dict[str, Any]) -> dict:
 
 def _route_post_request(path: str, body: Dict[str, Any]) -> dict:
     """Route POST requests to appropriate handlers."""
-    
+
+    # Route: POST /watchlist
+    if path == '/watchlist':
+        logger.info("Routing to watchlist handler (add)")
+        return handle_add_to_watchlist(body)
+
     # Route: POST /training-data/save-by-grade
     if path == '/training-data/save-by-grade':
         logger.info("Routing to save_training_data handler")
         from src.handlers.save_training_data import lambda_handler as save_training_data_handler
-        # Create a mock event for the handler
         mock_event = {
             'body': body,
             'httpMethod': 'POST',
             'path': path
         }
         return save_training_data_handler(mock_event, None)
-    
+
     # Unknown POST path - return 404
     logger.warning(f"Unknown POST path: {path}")
-    return error_response(
-        f"Endpoint not found: {path}",
-        404
-    )
+    return error_response(f"Endpoint not found: {path}", 404)
+
+
+def _route_delete_request(path: str, body: Dict[str, Any]) -> dict:
+    """Route DELETE requests to appropriate handlers."""
+
+    # Route: DELETE /watchlist
+    if path == '/watchlist':
+        logger.info("Routing to watchlist handler (remove)")
+        return handle_remove_from_watchlist(body)
+
+    logger.warning(f"Unknown DELETE path: {path}")
+    return error_response(f"Endpoint not found: {path}", 404)
 

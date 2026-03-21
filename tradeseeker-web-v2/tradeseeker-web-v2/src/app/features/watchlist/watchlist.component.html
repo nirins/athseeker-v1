@@ -1,0 +1,47 @@
+<div class="dashboard-container">
+  <div class="dashboard-header">
+    <div class="controls">
+      <div class="left-controls">
+        <a routerLink="/dashboard" class="nav-btn">← Dashboard</a>
+        <span class="page-title">Watchlist</span>
+      </div>
+      <div class="right-controls">
+        <button
+          class="refresh-button"
+          [class.active]="isLoading"
+          (click)="onRefresh()"
+          [disabled]="isLoading">
+          <span *ngIf="!isLoading">Refresh</span>
+          <span *ngIf="isLoading">Refreshing...</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="isLoading && stockDataArray.length === 0" class="loading-container">
+    <app-loading-spinner></app-loading-spinner>
+    <p>Loading watchlist...</p>
+  </div>
+
+  <div *ngIf="error" class="error-container">
+    <app-error-message
+      [message]="error"
+      [showRetry]="true"
+      (retry)="onRefresh()">
+    </app-error-message>
+  </div>
+
+  <div *ngIf="!isLoading && !error && stockDataArray.length === 0" class="empty-state">
+    <p>Your watchlist is empty.</p>
+    <p class="hint">Click ☆ on any stock chart to add it.</p>
+  </div>
+
+  <app-chart-grid
+    *ngIf="stockDataArray.length > 0"
+    [stockData]="stockDataArray"
+    [displayMode]="selectedDisplayMode"
+    [chartType]="selectedChartType"
+    [isLabelMode]="false"
+    [beautyScoreMap]="beautyScoreMap">
+  </app-chart-grid>
+</div>
