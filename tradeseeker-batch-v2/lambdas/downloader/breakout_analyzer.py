@@ -69,11 +69,84 @@ class BreakoutAnalyzer:
             # Apply price range volatility penalty using 360-day window
             result = self._apply_price_range_penalty(result, price_data, ath_index)
 
+            # Apply EMA position penalty based on most recent price vs EMAs
+            result = self._apply_ema_position_penalty(result, price_data)
+
             return result
                 
         except Exception as e:
             logger.error(f"Error calculating breakout beauty score: {str(e)}")
             return {'beauty_score': 0, 'reason': f'Error: {str(e)}'}
+
+    def _apply_ema_position_penalty(self, result: Dict, price_data: List[Dict]) -> Dict:
+        """
+        Apply a penalty if the most recent close price is below EMAs.
+
+        Penalty tiers (based on how many EMAs the price is below):
+          - Below 1 EMA:  penalty 5
+          - Below 2 EMAs: penalty 10
+          - Below 3 EMAs: penalty 20
+          - Below all 4:  penalty 35
+
+        Args:
+            result: Current beauty score result dict
+            price_data: Full price data list
+
+        Returns:
+            Updated result dict with penalty applied
+        """
+        try:
+            # Find the most recent record that has at least one EMA value
+            latest = None
+            for record in reversed(price_data):
+                if any(record.get(f'ema_{p}') is not None for p in [7, 30, 50, 200]):
+                    latest = record
+                    break
+
+            if latest is None:
+                return result
+
+            close = float(latest.get('close', 0))
+            if close <= 0:
+                return result
+
+            ema_penalties = {7: 5, 30: 10, 50: 20, 200: 35}
+            below = []
+
+            for period in [7, 30, 50, 200]:
+                val = latest.get(f'ema_{period}')
+                if val is not None and close < float(val):
+                    below.append(period)
+
+            if not below:
+                result = dict(result)
+                result['ema_position_penalty'] = 0
+                return result
+
+            # Tiered penalty: below 1=5, 2=10, 3=20, 4=35
+            tier_penalties = {1: 5, 2: 10, 3: 20, 4: 35}
+            penalty = tier_penalties[len(below)]
+
+            original_score = result.get('beauty_score', 0)
+            penalised_score = max(0, round(original_score - penalty, 1))
+
+            logger.info(
+                f"EMA position penalty: close={close:.2f}, below EMAs={below}, "
+                f"penalty={penalty}, score {original_score} -> {penalised_score}"
+            )
+
+            result = dict(result)
+            result['beauty_score'] = penalised_score
+            result['ema_position_penalty'] = penalty
+            result['emas_below'] = below
+            if 'grade' in result:
+                result['grade'] = self._get_beauty_grade(penalised_score)
+
+            return result
+
+        except Exception as e:
+            logger.error(f"Error applying EMA position penalty: {str(e)}")
+            return result
 
     def _apply_price_range_penalty(self, result: Dict, price_data: List[Dict], ath_index: int) -> Dict:
         """

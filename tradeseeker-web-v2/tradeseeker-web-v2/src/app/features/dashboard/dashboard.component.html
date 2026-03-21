@@ -2,6 +2,8 @@
   <div class="dashboard-header">
     <div class="controls">
       <div class="left-controls">
+        <a routerLink="/watchlist" class="watchlist-nav-btn">Watchlist</a>
+
         <app-strategy-selector
           [selectedStrategy]="selectedStrategy"
           (strategyChange)="onStrategyChange($event)">
@@ -24,7 +26,6 @@
       </div>
 
       <div class="right-controls">
-        <a routerLink="/watchlist" class="watchlist-nav-btn">Watchlist</a>
         <button 
           class="refresh-button"
           [class.active]="isLoading"
