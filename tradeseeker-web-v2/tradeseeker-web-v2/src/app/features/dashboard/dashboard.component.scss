@@ -40,15 +40,20 @@
 }
 
 .watchlist-nav-btn {
-  padding: 0.25rem 0.5rem;
+  padding: 0.125rem 0.5rem;
   font-size: 0.75rem;
   font-weight: 500;
+  line-height: 1rem;
+  box-sizing: border-box;
   background-color: #1e293b;
   color: white;
-  border: none;
+  border: 1px solid #1e293b;
   border-radius: 4px;
   cursor: pointer;
   text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 
   &:hover {
     background-color: #334155;
@@ -86,20 +91,19 @@
   }
 
   &:disabled {
-    opacity: 0.7;
     cursor: not-allowed;
   }
 }
 
 .refresh-button {
-  padding: 0.25rem 0.5rem;
+  padding: 0.125rem 0.5rem;
   background: #1e293b;
   color: white;
   border: 1px solid #1e293b;
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 500;
-  line-height: 1.25rem;
+  line-height: 1rem;
   box-sizing: border-box;
   cursor: pointer;
   transition: all 0.2s;
@@ -115,14 +119,14 @@
 }
 
 .label-training-toggle {
-  padding: 0.25rem 0.5rem;
+  padding: 0.125rem 0.5rem;
   background: white;
   color: #666;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 500;
-  line-height: 1.25rem;
+  line-height: 1rem;
   box-sizing: border-box;
   cursor: pointer;
   transition: all 0.2s;
@@ -164,7 +168,7 @@
   }
 
   &:disabled {
-    opacity: 0.6;
+    cursor: not-allowed;
   }
 }
 

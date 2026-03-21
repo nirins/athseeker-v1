@@ -16,13 +16,15 @@
 }
 
 .strategy-button {
-  padding: 0.25rem 0.5rem;
+  padding: 0.125rem 0.5rem;
   background-color: white;
   color: #666;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 500;
+  line-height: 1rem;
+  box-sizing: border-box;
   cursor: pointer;
   transition: all 0.2s;
 
