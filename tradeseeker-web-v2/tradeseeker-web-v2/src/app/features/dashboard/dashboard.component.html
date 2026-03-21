@@ -2,8 +2,6 @@
   <div class="dashboard-header">
     <div class="controls">
       <div class="left-controls">
-        <a routerLink="/watchlist" class="watchlist-nav-btn">Watchlist</a>
-
         <app-strategy-selector
           [selectedStrategy]="selectedStrategy"
           (strategyChange)="onStrategyChange($event)">
@@ -42,6 +40,8 @@
           [class.active]="isLabelMode">
           {{ isLabelMode ? 'Exit' : 'Label' }}
         </button>
+
+        <a routerLink="/watchlist" class="watchlist-nav-btn">Watchlist</a>
       </div>
     </div>
   </div>
