@@ -34,7 +34,7 @@
 
         <!-- Label Training Toggle -->
         <button 
-          *ngIf="isAdminUser"
+          *ngIf="isAdminUser && !isNative"
           class="label-training-toggle"
           (click)="toggleLabelMode()"
           [class.active]="isLabelMode">
@@ -42,8 +42,8 @@
         </button>
 
         <a routerLink="/watchlist" class="watchlist-nav-btn" *ngIf="isAuthenticated">Watchlist</a>
-        <button class="signout-btn" *ngIf="isAuthenticated" (click)="signOut()">Sign out</button>
-        <a routerLink="/login" class="signout-btn" *ngIf="!isAuthenticated">Sign in</a>
+        <button class="watchlist-nav-btn" *ngIf="isAuthenticated" (click)="signOut()">Sign out</button>
+        <a routerLink="/login" class="watchlist-nav-btn" *ngIf="!isAuthenticated">Sign in</a>
       </div>
     </div>
   </div>

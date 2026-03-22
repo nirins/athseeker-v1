@@ -537,6 +537,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return this.authService.isAuthenticated();
   }
 
+  get isNative(): boolean {
+    return !!(window as any).Capacitor?.isNativePlatform?.();
+  }
+
   get isAdminUser(): boolean {
     const state = this.authService.getAuthState();
     return state.username === 'e94a85dc-c031-70b2-7ab6-aeebd1d11fcf';
