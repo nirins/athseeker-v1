@@ -41,7 +41,7 @@
           {{ isLabelMode ? 'Exit' : 'Label' }}
         </button>
 
-        <a routerLink="/watchlist" class="watchlist-nav-btn" *ngIf="isAuthenticated && !isNative">Watchlist</a>
+        <a routerLink="/watchlist" class="watchlist-nav-btn" *ngIf="isAuthenticated">Watchlist</a>
         <button class="watchlist-nav-btn" *ngIf="isAuthenticated && !isNative" (click)="signOut()">Sign out</button>
         <a routerLink="/login" class="watchlist-nav-btn" *ngIf="!isAuthenticated && !isNative">Sign in</a>
       </div>
