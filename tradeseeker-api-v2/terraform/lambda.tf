@@ -7,7 +7,7 @@ resource "aws_lambda_function" "tradeseeker_api" {
   source_code_hash = filebase64sha256("${path.module}/../build/lambda_package.zip")
   runtime         = "python3.12"
   timeout         = 30
-  memory_size     = 512
+  memory_size     = 1024
 
   environment {
     variables = {
