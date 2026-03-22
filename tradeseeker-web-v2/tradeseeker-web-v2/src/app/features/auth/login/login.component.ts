@@ -24,7 +24,7 @@ export class LoginComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private authService: AuthService,
-    public router: Router
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -35,6 +35,11 @@ export class LoginComponent implements OnInit {
     }
     
     this.initializeForms();
+  }
+
+  browseWithoutLogin(): void {
+    console.log('browseWithoutLogin clicked');
+    this.router.navigate(['/dashboard']);
   }
 
   initializeForms(): void {
