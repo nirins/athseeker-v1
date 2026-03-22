@@ -169,3 +169,27 @@ form {
     padding: 1.5rem;
   }
 }
+
+.guest-access {
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+.guest-btn {
+  background: none;
+  border: none;
+  color: #3b82f6;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0.25rem;
+  display: block;
+  width: 100%;
+  text-align: center;
+  margin-top: 1rem;
+
+  &:hover {
+    color: #1d4ed8;
+  }
+}

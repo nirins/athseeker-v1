@@ -67,6 +67,8 @@
         <span *ngIf="!isLoading">Sign In</span>
         <span *ngIf="isLoading">Signing In...</span>
       </button>
+
+      <button type="button" class="guest-btn" (click)="router.navigate(['/dashboard'])">Browse without login</button>
     </form>
 
     <!-- Confirmation Form -->
