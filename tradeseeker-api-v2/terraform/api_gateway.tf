@@ -830,8 +830,26 @@ resource "aws_api_gateway_stage" "tradeseeker_api" {
   rest_api_id   = aws_api_gateway_rest_api.tradeseeker_api.id
   stage_name    = var.environment
 
+  # Enable API Gateway cache (0.5GB) — TTL 5 minutes for stock data endpoints
+  cache_cluster_enabled = true
+  cache_cluster_size    = "0.5"
+
   tags = {
     Name = "${var.project_name}-${var.environment}"
+  }
+}
+
+# Cache settings per method — enable caching on GET /stocks/batch
+resource "aws_api_gateway_method_settings" "stock_batch_cache" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  stage_name  = aws_api_gateway_stage.tradeseeker_api.stage_name
+  method_path = "${aws_api_gateway_resource.stock_batch.path_part}/GET"
+
+  settings {
+    caching_enabled      = true
+    cache_ttl_in_seconds = 300 # 5 minutes
+    cache_data_encrypted = false
+    require_authorization_for_cache_control = false
   }
 }
 

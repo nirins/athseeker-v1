@@ -24,8 +24,10 @@ export class WatchlistComponent implements OnInit, OnDestroy {
   error: string | null = null;
   selectedDisplayMode: ChartDisplayMode = 'both';
   selectedChartType: ChartType = 'candlestick';
+  showScrollTop = false;
 
   private destroy$ = new Subject<void>();
+  private onScrollBound = this.onScroll.bind(this);
 
   constructor(
     private apiService: ApiService,
@@ -34,11 +36,25 @@ export class WatchlistComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadWatchlist();
+    if (typeof window !== 'undefined') {
+      window.addEventListener('scroll', this.onScrollBound, { passive: true });
+    }
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('scroll', this.onScrollBound);
+    }
+  }
+
+  private onScroll(): void {
+    this.showScrollTop = window.scrollY > 300;
+  }
+
+  scrollToTop(): void {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   loadWatchlist(): void {
