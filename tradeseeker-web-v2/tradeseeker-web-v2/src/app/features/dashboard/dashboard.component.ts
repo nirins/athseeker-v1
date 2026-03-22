@@ -72,7 +72,17 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   constructor(private apiService: ApiService, private watchlistService: WatchlistService) {}
 
+  private touchStartY = 0;
+  private readonly PULL_THRESHOLD = 80;
+  showScrollTop = false;
+
   ngOnInit(): void {
+    // Pull-to-refresh for iOS
+    if (typeof window !== 'undefined') {
+      window.addEventListener('touchstart', this.onTouchStart.bind(this), { passive: true });
+      window.addEventListener('touchend', this.onTouchEnd.bind(this), { passive: true });
+      window.addEventListener('scroll', this.onScroll.bind(this), { passive: true });
+    }
     // Restore preferences from sessionStorage (only in browser)
     if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
       const savedMarket = sessionStorage.getItem('selectedMarket');
@@ -112,6 +122,31 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (this.refreshInterval) {
       clearInterval(this.refreshInterval);
     }
+
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('touchstart', this.onTouchStart.bind(this));
+      window.removeEventListener('touchend', this.onTouchEnd.bind(this));
+      window.removeEventListener('scroll', this.onScroll.bind(this));
+    }
+  }
+
+  private onTouchStart(e: TouchEvent): void {
+    this.touchStartY = e.touches[0].clientY;
+  }
+
+  private onTouchEnd(e: TouchEvent): void {
+    const deltaY = e.changedTouches[0].clientY - this.touchStartY;
+    if (deltaY > this.PULL_THRESHOLD && window.scrollY === 0) {
+      this.onRefresh();
+    }
+  }
+
+  private onScroll(): void {
+    this.showScrollTop = window.scrollY > 300;
+  }
+
+  scrollToTop(): void {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   fetchData(): void {

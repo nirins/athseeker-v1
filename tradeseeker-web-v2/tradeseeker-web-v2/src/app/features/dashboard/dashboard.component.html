@@ -125,4 +125,7 @@
   <div class="end-results-container" *ngIf="!isLoading && !error && stockDataArray.length > 0 && !hasMoreData">
     <p class="stock-count">Total stocks loaded: {{ stockDataArray.length }}</p>
   </div>
+
+  <!-- Scroll to top pill -->
+  <div class="scroll-top-pill" *ngIf="showScrollTop" (click)="scrollToTop()">↑</div>
 </div>
