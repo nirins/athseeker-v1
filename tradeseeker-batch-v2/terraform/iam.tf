@@ -133,6 +133,7 @@ resource "aws_iam_role_policy" "downloader" {
         ]
         Resource = [
           aws_dynamodb_table.stock_prices.arn,
+          aws_dynamodb_table.stock_prices_lite.arn,
           aws_dynamodb_table.golden_crosses.arn,
           aws_dynamodb_table.death_crosses.arn,
           aws_dynamodb_table.ath_detections.arn,

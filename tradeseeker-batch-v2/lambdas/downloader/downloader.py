@@ -22,18 +22,20 @@ logger = logging.getLogger()
 class StockDownloader:
     """Downloads stock prices, calculates EMAs, and stores in S3 and DynamoDB"""
     
-    def __init__(self, environment: str, s3_bucket: str, dynamodb_table: str):
+    def __init__(self, environment: str, s3_bucket: str, dynamodb_table: str, dynamodb_lite_table: str = ''):
         """
         Initialize Stock Downloader
         
         Args:
             environment: Environment name (dev, uat, prod)
             s3_bucket: S3 bucket name for raw data storage
-            dynamodb_table: DynamoDB table name for processed data
+            dynamodb_table: DynamoDB table name for processed data (full history)
+            dynamodb_lite_table: DynamoDB table name for lite data (360 days, for batch API)
         """
         self.environment = environment
         self.s3_bucket = s3_bucket
         self.dynamodb_table = dynamodb_table
+        self.dynamodb_lite_table = dynamodb_lite_table
         
         # AWS clients
         self.s3 = boto3.client('s3')
@@ -111,8 +113,20 @@ class StockDownloader:
         if detections['has_any']:
             logger.info(f"Detections found for {symbol_with_market} - Cross: {detections['cross']}, ATH: {detections['ath']}")
             
-            # Save to main DynamoDB table
+            # Save to main DynamoDB table (full history)
             self.storage.save_to_dynamodb(task, filtered_data, moving_averages, candle_metrics)
+
+            # Save to lite table (360 days only, for fast batch API)
+            if self.dynamodb_lite_table:
+                from datetime import datetime, timedelta
+                cutoff = (datetime.now() - timedelta(days=360)).strftime('%Y-%m-%d')
+                lite_data = [r for r in filtered_data if r.get('date', '') >= cutoff]
+                lite_mas = [m for m in moving_averages if m.get('date', '') >= cutoff]
+                lite_storage = StorageManager(
+                    self.environment, self.s3_bucket,
+                    self.dynamodb_lite_table, self.s3, self.dynamodb
+                )
+                lite_storage.save_to_dynamodb(task, lite_data, lite_mas, candle_metrics)
             
             # Save specific detections
             self.save_detections(symbol_with_market, market_code, moving_averages, filtered_data, candle_metrics, detections)

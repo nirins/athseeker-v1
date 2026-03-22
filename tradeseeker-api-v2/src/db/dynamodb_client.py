@@ -43,6 +43,10 @@ class DynamoDBClient:
             'STOCK_PRICES_TABLE',
             'ts-batch-v2-dev-stock-prices'
         )
+        self.stock_prices_lite_table_name = os.environ.get(
+            'STOCK_PRICES_LITE_TABLE',
+            'ts-batch-v2-dev-stock-prices-lite'
+        )
         self.ath_stocks_table_name = os.environ.get(
             'ATH_STOCKS_TABLE',
             'ts-batch-v2-dev-ath'
@@ -63,6 +67,7 @@ class DynamoDBClient:
         self.golden_crosses_table = self.dynamodb.Table(self.golden_crosses_table_name)
         self.death_crosses_table = self.dynamodb.Table(self.death_crosses_table_name)
         self.stock_prices_table = self.dynamodb.Table(self.stock_prices_table_name)
+        self.stock_prices_lite_table = self.dynamodb.Table(self.stock_prices_lite_table_name)
         self.ath_stocks_table = self.dynamodb.Table(self.ath_stocks_table_name)
         self.near_ath_stocks_table = self.dynamodb.Table(self.near_ath_stocks_table_name)
         
@@ -833,6 +838,37 @@ class DynamoDBClient:
                 f"{e.response['Error']['Code']} - {e.response['Error']['Message']}"
             )
             raise
+
+    def batch_get_stock_prices_lite(self, symbols: list[str]) -> list[dict]:
+        """
+        Fetch 360-day stock price records from the lite table using ThreadPoolExecutor.
+        Much faster than the full table due to smaller item sizes.
+        """
+        if not symbols:
+            return []
+
+        import concurrent.futures
+        start_time = time.time()
+        results = []
+
+        def fetch_one(symbol: str):
+            try:
+                response = self.stock_prices_lite_table.get_item(Key={'symbol': symbol})
+                return response.get('Item')
+            except ClientError as e:
+                logger.error(f"get_item (lite) failed for {symbol}: {e.response['Error']['Code']}")
+                return None
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+            futures = {executor.submit(fetch_one, s): s for s in symbols}
+            for future in concurrent.futures.as_completed(futures):
+                item = future.result()
+                if item:
+                    results.append(item)
+
+        execution_time = time.time() - start_time
+        logger.info(f"batch_get_stock_prices_lite: fetched {len(results)}/{len(symbols)} in {execution_time:.3f}s")
+        return results
 
     def batch_get_stock_prices(self, symbols: list[str]) -> list[dict]:
         """

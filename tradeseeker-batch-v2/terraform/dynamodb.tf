@@ -28,6 +28,33 @@ resource "aws_dynamodb_table" "stock_prices" {
   )
 }
 
+# DynamoDB table for storing OHLCV data and EMAs (lite — 360 days, for dashboard batch API)
+resource "aws_dynamodb_table" "stock_prices_lite" {
+  name         = local.dynamodb_lite_table_name
+  billing_mode = local.current_config.dynamodb_billing_mode
+  hash_key     = "symbol"
+
+  attribute {
+    name = "symbol"
+    type = "S"
+  }
+
+  point_in_time_recovery {
+    enabled = true
+  }
+
+  server_side_encryption {
+    enabled = true
+  }
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = local.dynamodb_lite_table_name
+    }
+  )
+}
+
 # DynamoDB table for golden cross signals (past 7 days)
 resource "aws_dynamodb_table" "golden_crosses" {
   name         = "${local.name_prefix}-golden-crosses"

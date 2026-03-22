@@ -37,10 +37,11 @@ locals {
   aws_account_id = local.current_config.aws_account_id != "" ? local.current_config.aws_account_id : data.aws_caller_identity.current.account_id
   
   # Resource names
-  s3_bucket_name       = "${local.name_prefix}-stock-prices-${local.aws_account_id}"
-  dynamodb_table_name  = "${local.name_prefix}-stock-prices"
-  sqs_queue_name       = "${local.name_prefix}-download-queue"
-  sqs_dlq_name         = "${local.name_prefix}-download-dlq"
+  s3_bucket_name            = "${local.name_prefix}-stock-prices-${local.aws_account_id}"
+  dynamodb_table_name       = "${local.name_prefix}-stock-prices"
+  dynamodb_lite_table_name  = "${local.name_prefix}-stock-prices-lite"
+  sqs_queue_name            = "${local.name_prefix}-download-queue"
+  sqs_dlq_name              = "${local.name_prefix}-download-dlq"
   
   # Lambda function names
   task_generator_name = "${local.name_prefix}-task-generator"

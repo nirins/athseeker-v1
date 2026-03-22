@@ -40,6 +40,12 @@ variable "ath_stocks_table" {
   default     = "ts-batch-v2-dev-ath"
 }
 
+variable "stock_prices_lite_table" {
+  description = "DynamoDB table name for stock prices lite (360 days)"
+  type        = string
+  default     = "ts-batch-v2-dev-stock-prices-lite"
+}
+
 variable "near_ath_stocks_table" {
   description = "DynamoDB table name for Near ATH stocks"
   type        = string

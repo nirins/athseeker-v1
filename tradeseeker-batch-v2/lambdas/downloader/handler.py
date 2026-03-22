@@ -34,7 +34,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     downloader = StockDownloader(
         environment=os.environ.get('ENVIRONMENT', 'dev'),
         s3_bucket=os.environ['S3_BUCKET_NAME'],
-        dynamodb_table=os.environ['DYNAMODB_TABLE_NAME']
+        dynamodb_table=os.environ['DYNAMODB_TABLE_NAME'],
+        dynamodb_lite_table=os.environ.get('DYNAMODB_LITE_TABLE_NAME', '')
     )
     
     # Process each message

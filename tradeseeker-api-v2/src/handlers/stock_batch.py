@@ -1,12 +1,11 @@
 """
 Batch stock price endpoint handler.
 GET /stocks/batch?symbols=AAPL.US,MSFT.US,...
-Returns price + EMA data for multiple symbols in one call.
+Reads from stock-prices-lite table (360 days) for fast response.
 """
 
 import logging
 from typing import Dict, Any
-from datetime import datetime, timedelta
 
 from src.formatters import success_response, error_response
 from src.db.dynamodb_client import DynamoDBClient
@@ -17,15 +16,6 @@ MAX_SYMBOLS = 100
 
 
 def handle_stock_batch(query_params: Dict[str, Any]) -> dict:
-    """
-    Fetch stock price data for multiple symbols in one request.
-
-    Query params:
-        symbols: comma-separated list of symbols (e.g. AAPL.US,MSFT.US)
-
-    Returns:
-        { data: { results: { AAPL.US: {...}, MSFT.US: {...} }, count: 2 } }
-    """
     symbols_param = query_params.get('symbols', '')
     if not symbols_param:
         return error_response("Missing required parameter: symbols", 400)
@@ -41,20 +31,9 @@ def handle_stock_batch(query_params: Dict[str, Any]) -> dict:
 
     try:
         db_client = DynamoDBClient()
-        items = db_client.batch_get_stock_prices(symbols)
+        items = db_client.batch_get_stock_prices_lite(symbols)
 
-        # Trim to last 360 days — dashboard charts don't need full history
-        # Full history is available via GET /stocks/{symbol}/history
-        cutoff = (datetime.utcnow() - timedelta(days=360)).strftime('%Y-%m-%d')
-        results = {}
-        for item in items:
-            symbol = item['symbol']
-            trimmed = dict(item)
-            if 'prices' in trimmed:
-                trimmed['prices'] = [p for p in trimmed['prices'] if p.get('date', '') >= cutoff]
-            if 'moving_averages' in trimmed:
-                trimmed['moving_averages'] = [m for m in trimmed['moving_averages'] if m.get('date', '') >= cutoff]
-            results[symbol] = trimmed
+        results = {item['symbol']: item for item in items}
 
         return success_response({
             'results': results,
