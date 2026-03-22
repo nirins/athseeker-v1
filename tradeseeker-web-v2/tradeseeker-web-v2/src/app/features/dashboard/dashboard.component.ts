@@ -1,10 +1,11 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { Subject, of } from 'rxjs';
 import { switchMap, takeUntil, catchError } from 'rxjs/operators';
 import { ApiService } from '../../core/services/api.service';
 import { WatchlistService } from '../../core/services/watchlist.service';
+import { AuthService } from '../../core/services/auth.service';
 import { StockData, ChartDisplayMode, ChartType } from '../../core/models';
 import { MarketSelectorComponent } from './components/market-selector/market-selector.component';
 import { ChartDisplayModeSelectorComponent } from './components/chart-display-mode-selector/chart-display-mode-selector.component';
@@ -70,7 +71,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     { value: 'F', label: 'F - Failed' }
   ];
 
-  constructor(private apiService: ApiService, private watchlistService: WatchlistService) {}
+  constructor(private apiService: ApiService, private watchlistService: WatchlistService, private authService: AuthService, public router: Router) {}
 
   private touchStartY = 0;
   private readonly PULL_THRESHOLD = 80;
@@ -530,6 +531,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
 
     this.fetchData();
+  }
+
+  get isAuthenticated(): boolean {
+    return this.authService.isAuthenticated();
+  }
+
+  get isAdminUser(): boolean {
+    const state = this.authService.getAuthState();
+    return state.username === 'e94a85dc-c031-70b2-7ab6-aeebd1d11fcf';
+  }
+
+  signOut(): void {
+    this.router.navigate(['/']).then(() => {
+      this.authService.logout();
+    });
   }
 
   /**

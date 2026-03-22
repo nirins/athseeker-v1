@@ -34,13 +34,16 @@
 
         <!-- Label Training Toggle -->
         <button 
+          *ngIf="isAdminUser"
           class="label-training-toggle"
           (click)="toggleLabelMode()"
           [class.active]="isLabelMode">
           {{ isLabelMode ? 'Exit' : 'Label' }}
         </button>
 
-        <a routerLink="/watchlist" class="watchlist-nav-btn">Watchlist</a>
+        <a routerLink="/watchlist" class="watchlist-nav-btn" *ngIf="isAuthenticated">Watchlist</a>
+        <button class="signout-btn" *ngIf="isAuthenticated" (click)="signOut()">Sign out</button>
+        <a routerLink="/login" class="signout-btn" *ngIf="!isAuthenticated">Sign in</a>
       </div>
     </div>
   </div>
@@ -114,9 +117,10 @@
     <button 
       class="load-more-button"
       [disabled]="isLoadingMore"
-      (click)="loadMore()">
-      <span *ngIf="!isLoadingMore">Load More Stocks</span>
+      (click)="isAuthenticated ? loadMore() : router.navigate(['/login'])">
+      <span *ngIf="!isLoadingMore && isAuthenticated">Load More Stocks</span>
       <span *ngIf="isLoadingMore">Loading...</span>
+      <span *ngIf="!isAuthenticated">Sign in to load more</span>
     </button>
     <p class="stock-count">Showing {{ stockDataArray.length }} of {{ allSymbols.length }} stocks</p>
   </div>
