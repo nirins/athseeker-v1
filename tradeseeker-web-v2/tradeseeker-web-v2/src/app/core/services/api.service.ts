@@ -146,17 +146,36 @@ export class ApiService {
       return of(new Map());
     }
 
-    const symbolsParam = symbols.join(',');
+    // Check cache — return cached entries and only fetch missing ones
+    const resultMap = new Map<string, StockData>();
+    const toFetch: string[] = [];
+    const now = Date.now();
+
+    for (const symbol of symbols) {
+      const cached = this.stockCache.get(symbol);
+      if (cached && now - cached.timestamp < this.CACHE_TTL_MS) {
+        resultMap.set(symbol, cached.data);
+      } else {
+        toFetch.push(symbol);
+      }
+    }
+
+    if (toFetch.length === 0) {
+      return of(resultMap);
+    }
+
+    const symbolsParam = toFetch.join(',');
     const url = `${this.baseUrl}/stocks/batch?symbols=${encodeURIComponent(symbolsParam)}`;
 
     return this.http.get<any>(url).pipe(
       retry(2),
       map(response => {
-        const resultMap = new Map<string, StockData>();
         const results = response?.data?.results || response?.results || {};
         for (const [symbol, raw] of Object.entries(results)) {
           try {
-            resultMap.set(symbol, this.validateStockData(raw));
+            const data = this.validateStockData(raw);
+            this.stockCache.set(symbol, { data, timestamp: now });
+            resultMap.set(symbol, data);
           } catch (e) {
             console.warn(`Skipping invalid batch data for ${symbol}:`, e);
           }
