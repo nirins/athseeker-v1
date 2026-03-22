@@ -28,6 +28,10 @@ export class WatchlistComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
   private onScrollBound = this.onScroll.bind(this);
+  private onTouchStartBound = this.onTouchStart.bind(this);
+  private onTouchEndBound = this.onTouchEnd.bind(this);
+  private touchStartY = 0;
+  private readonly PULL_THRESHOLD = 80;
 
   constructor(
     private apiService: ApiService,
@@ -38,6 +42,8 @@ export class WatchlistComponent implements OnInit, OnDestroy {
     this.loadWatchlist();
     if (typeof window !== 'undefined') {
       window.addEventListener('scroll', this.onScrollBound, { passive: true });
+      window.addEventListener('touchstart', this.onTouchStartBound, { passive: true });
+      window.addEventListener('touchend', this.onTouchEndBound, { passive: true });
     }
   }
 
@@ -46,6 +52,19 @@ export class WatchlistComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
     if (typeof window !== 'undefined') {
       window.removeEventListener('scroll', this.onScrollBound);
+      window.removeEventListener('touchstart', this.onTouchStartBound);
+      window.removeEventListener('touchend', this.onTouchEndBound);
+    }
+  }
+
+  private onTouchStart(e: TouchEvent): void {
+    this.touchStartY = e.touches[0].clientY;
+  }
+
+  private onTouchEnd(e: TouchEvent): void {
+    const deltaY = e.changedTouches[0].clientY - this.touchStartY;
+    if (deltaY > this.PULL_THRESHOLD && window.scrollY === 0) {
+      this.onRefresh();
     }
   }
 
