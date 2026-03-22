@@ -2,7 +2,7 @@
   <div class="dashboard-header">
     <div class="controls">
       <div class="left-controls">
-        <a routerLink="/dashboard" class="nav-btn">← Dashboard</a>
+        <a routerLink="/dashboard" class="nav-btn" *ngIf="!isNative">← Dashboard</a>
         <span class="page-title">Watchlist</span>
       </div>
       <div class="right-controls">
@@ -47,4 +47,7 @@
 
   <!-- Scroll to top pill -->
   <div class="scroll-top-pill" *ngIf="showScrollTop" (click)="scrollToTop()">↑</div>
+
+  <!-- Dashboard pill (iOS) -->
+  <button class="dashboard-pill" *ngIf="isNative" (click)="goToDashboard()">⌂</button>
 </div>

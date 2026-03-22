@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { ApiService } from '../../core/services/api.service';
@@ -35,8 +35,17 @@ export class WatchlistComponent implements OnInit, OnDestroy {
 
   constructor(
     private apiService: ApiService,
-    private watchlistService: WatchlistService
+    private watchlistService: WatchlistService,
+    private router: Router
   ) {}
+
+  get isNative(): boolean {
+    return !!(window as any).Capacitor?.isNativePlatform?.();
+  }
+
+  goToDashboard(): void {
+    this.router.navigate(['/dashboard']);
+  }
 
   ngOnInit(): void {
     this.loadWatchlist();
