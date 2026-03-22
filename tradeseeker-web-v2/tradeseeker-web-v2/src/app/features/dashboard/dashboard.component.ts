@@ -298,44 +298,34 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Fetch stock data asynchronously and add to array as they arrive
+   * Fetch stock data via single batch request and render in symbol order
    */
   private fetchStockDataAsync(symbols: string[]): void {
     const uniqueSymbols = [...new Set(symbols)];
+    if (uniqueSymbols.length === 0) return;
 
-    // Pre-fill array with nulls to reserve positions
-    const orderedData: (StockData | null)[] = new Array(uniqueSymbols.length).fill(null);
-    // Remember the base offset into stockDataArray for this batch
-    const baseIndex = this.stockDataArray.length;
+    // Check cache first — skip symbols already in stockDataArray
+    const alreadyLoaded = new Set(this.stockDataArray.map(s => s.symbol));
+    const toFetch = uniqueSymbols.filter(s => !alreadyLoaded.has(s));
 
-    uniqueSymbols.forEach((symbol, index) => {
-      this.apiService.getStockData(symbol).pipe(
-        takeUntil(this.destroy$),
-        catchError(error => {
-          console.error(`Error fetching data for ${symbol}:`, error);
-          return of(null);
-        })
-      ).subscribe(stockData => {
-        if (stockData) {
-          orderedData[index] = stockData;
-        }
+    if (toFetch.length === 0) return;
 
-        // Append consecutive filled slots from where we left off
-        const currentBatchLength = this.stockDataArray.length - baseIndex;
-        let appendCount = 0;
-        for (let i = currentBatchLength; i < orderedData.length; i++) {
-          if (orderedData[i] !== null) {
-            appendCount++;
-          } else {
-            break;
-          }
-        }
-
-        if (appendCount > 0) {
-          const newItems = orderedData.slice(currentBatchLength, currentBatchLength + appendCount) as StockData[];
-          this.stockDataArray = [...this.stockDataArray, ...newItems];
-        }
-      });
+    this.apiService.getBatchStockData(toFetch).pipe(
+      takeUntil(this.destroy$),
+      catchError(error => {
+        console.error('Batch fetch error:', error);
+        return of(new Map<string, any>());
+      })
+    ).subscribe(resultMap => {
+      // Append in original symbol order
+      const ordered: StockData[] = [];
+      for (const symbol of toFetch) {
+        const data = resultMap.get(symbol);
+        if (data) ordered.push(data);
+      }
+      if (ordered.length > 0) {
+        this.stockDataArray = [...this.stockDataArray, ...ordered];
+      }
     });
   }
   

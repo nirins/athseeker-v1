@@ -13,6 +13,7 @@ from src.handlers.golden_crosses import handle_golden_crosses
 from src.handlers.death_crosses import handle_death_crosses
 from src.handlers.stock_price import handle_stock_price
 from src.handlers.stock_history import handle_stock_history
+from src.handlers.stock_batch import handle_stock_batch
 from src.handlers.ath_stocks import handle_ath_stocks
 from src.handlers.near_ath_stocks import handle_near_ath_stocks
 from src.handlers.openai_summary import handle_openai_summary
@@ -113,6 +114,11 @@ def _route_get_request(path: str, query_params: Dict[str, Any]) -> dict:
     if path == '/watchlist':
         logger.info("Routing to watchlist handler (get)")
         return handle_get_watchlist(query_params)
+
+    # Route: GET /stocks/batch (must be before /{symbol} pattern)
+    if path == '/stocks/batch':
+        logger.info("Routing to stock_batch handler")
+        return handle_stock_batch(query_params)
 
     # Route: GET /stocks/{symbol}/history
     history_pattern = r'^/stocks/([^/]+)/history$'

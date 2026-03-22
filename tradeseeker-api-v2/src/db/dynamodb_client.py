@@ -833,3 +833,42 @@ class DynamoDBClient:
                 f"{e.response['Error']['Code']} - {e.response['Error']['Message']}"
             )
             raise
+
+    def batch_get_stock_prices(self, symbols: list[str]) -> list[dict]:
+        """
+        Fetch multiple stock price records concurrently using ThreadPoolExecutor.
+        Uses individual get_item calls to avoid DynamoDB batch_get_item 16MB limit
+        (stock price items are large — prices + moving_averages arrays).
+
+        Args:
+            symbols: List of stock symbols (e.g. ['AAPL.US', 'MSFT.US'])
+
+        Returns:
+            List of stock price records (order not guaranteed)
+        """
+        if not symbols:
+            return []
+
+        import concurrent.futures
+        start_time = time.time()
+        results = []
+
+        def fetch_one(symbol: str):
+            try:
+                response = self.stock_prices_table.get_item(Key={'symbol': symbol})
+                return response.get('Item')
+            except ClientError as e:
+                logger.error(f"get_item failed for {symbol}: {e.response['Error']['Code']}")
+                return None
+
+        # Run up to 20 concurrent get_item calls
+        with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
+            futures = {executor.submit(fetch_one, s): s for s in symbols}
+            for future in concurrent.futures.as_completed(futures):
+                item = future.result()
+                if item:
+                    results.append(item)
+
+        execution_time = time.time() - start_time
+        logger.info(f"batch_get_stock_prices: fetched {len(results)}/{len(symbols)} records in {execution_time:.3f}s")
+        return results

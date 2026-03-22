@@ -139,6 +139,38 @@ export class ApiService {
   }
 
   /**
+   * Fetch stock data for multiple symbols in a single batch request
+   */
+  getBatchStockData(symbols: string[]): Observable<Map<string, StockData>> {
+    if (symbols.length === 0) {
+      return of(new Map());
+    }
+
+    const symbolsParam = symbols.join(',');
+    const url = `${this.baseUrl}/stocks/batch?symbols=${encodeURIComponent(symbolsParam)}`;
+
+    return this.http.get<any>(url).pipe(
+      retry(2),
+      map(response => {
+        const resultMap = new Map<string, StockData>();
+        const results = response?.data?.results || response?.results || {};
+        for (const [symbol, raw] of Object.entries(results)) {
+          try {
+            resultMap.set(symbol, this.validateStockData(raw));
+          } catch (e) {
+            console.warn(`Skipping invalid batch data for ${symbol}:`, e);
+          }
+        }
+        return resultMap;
+      }),
+      catchError(error => {
+        console.error('Batch stock data error:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
    * Fetch detailed stock data for a symbol
    */
   getStockData(symbol: string, days?: number): Observable<StockData> {
