@@ -51,7 +51,7 @@ def format_tweet(stocks):
         price = stock.get('current_price') or stock.get('ath_price')
         price_str = f'${float(price):.2f}' if price else ''
         url = f'https://athseeker.com/stock/{symbol}'
-        lines.append(f'{i}. ${ticker} {price_str} | Score: {score:.1f}\n{url}')
+        lines.append(f'{i}. {ticker} {url} {price_str} | Score: {score:.1f}')
 
     lines.append('\n#ATH #Stocks #Breakout')
     return '\n'.join(lines)
