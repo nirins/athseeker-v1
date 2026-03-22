@@ -1,7 +1,7 @@
 # TradeSeekerV2 - Root Makefile
 # Orchestrates all three components: API, Batch, and Web
 
-.PHONY: help all api batch web deploy-all clean test status train train-migrate train-check train-install train-analyze train-apply model-list model-switch model-test model-config
+.PHONY: help all api batch web ios deploy-all clean test status train train-migrate train-check train-install train-analyze train-apply model-list model-switch model-test model-config
 
 # Default target
 help:
@@ -12,6 +12,7 @@ help:
 	@echo "  make api        - Build and deploy API only"
 	@echo "  make batch      - Build and deploy Batch processing only"
 	@echo "  make web        - Build and deploy Web frontend only"
+	@echo "  make ios        - Build web and open iOS project in Xcode"
 	@echo "  make train      - Run beauty score model calibration workflow"
 	@echo ""
 	@echo "Training data management:"
@@ -60,6 +61,14 @@ batch:
 	@echo "🔧 Deploying Batch component..."
 	@cd tradeseeker-batch-v2 && $(MAKE) deploy-all
 	@echo "✅ Batch deployment complete!"
+
+# iOS component
+ios:
+	@echo "🍎 Building iOS app..."
+	@cd tradeseeker-web-v2/tradeseeker-web-v2 && ng build --configuration production
+	@cd tradeseeker-web-v2/tradeseeker-web-v2 && npx cap sync ios
+	@cd tradeseeker-web-v2/tradeseeker-web-v2 && npx cap open ios
+	@echo "✅ iOS project opened in Xcode!"
 
 # Web component
 web:
