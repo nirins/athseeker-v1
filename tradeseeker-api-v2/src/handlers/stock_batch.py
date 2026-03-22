@@ -6,6 +6,7 @@ Returns price + EMA data for multiple symbols in one call.
 
 import logging
 from typing import Dict, Any
+from datetime import datetime, timedelta
 
 from src.formatters import success_response, error_response
 from src.db.dynamodb_client import DynamoDBClient
@@ -42,7 +43,18 @@ def handle_stock_batch(query_params: Dict[str, Any]) -> dict:
         db_client = DynamoDBClient()
         items = db_client.batch_get_stock_prices(symbols)
 
-        results = {item['symbol']: item for item in items}
+        # Trim to last 360 days — dashboard charts don't need full history
+        # Full history is available via GET /stocks/{symbol}/history
+        cutoff = (datetime.utcnow() - timedelta(days=360)).strftime('%Y-%m-%d')
+        results = {}
+        for item in items:
+            symbol = item['symbol']
+            trimmed = dict(item)
+            if 'prices' in trimmed:
+                trimmed['prices'] = [p for p in trimmed['prices'] if p.get('date', '') >= cutoff]
+            if 'moving_averages' in trimmed:
+                trimmed['moving_averages'] = [m for m in trimmed['moving_averages'] if m.get('date', '') >= cutoff]
+            results[symbol] = trimmed
 
         return success_response({
             'results': results,
