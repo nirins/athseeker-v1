@@ -387,6 +387,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.allSymbols = [];
       this.currentOffset = 0;
       this.hasMoreData = false;
+      this.beautyScoreMap = new Map();
 
       // Emit market change to trigger data fetch with switchMap
       // This will cancel any pending requests for the previous market
@@ -423,6 +424,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
               // Extract symbols from the data array
               const symbols = response.data.map(item => item.symbol);
               this.goldenCrosses = symbols;
+
+              // Build beauty score map
+              response.data.forEach((item: any) => {
+                if (item.beauty_score != null) {
+                  this.beautyScoreMap.set(item.symbol, item.beauty_score);
+                }
+              });
 
               if (symbols.length === 0) {
                 return of([]);
