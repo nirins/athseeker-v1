@@ -71,6 +71,9 @@ export class StockDetailComponent implements OnInit, OnDestroy {
     { label: '10 Years', days: 3650 }
   ];
 
+  showScrollTop = false;
+  private onScrollBound = this.onScroll.bind(this);
+
   constructor(
     private route: ActivatedRoute,
     private router: Router,
@@ -88,6 +91,8 @@ export class StockDetailComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+    window.addEventListener('scroll', this.onScrollBound);
+
     // Restore chart type from session storage
     const savedChartType = sessionStorage.getItem('detailChartType') as ChartType;
     if (savedChartType) {
@@ -111,8 +116,17 @@ export class StockDetailComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    window.removeEventListener('scroll', this.onScrollBound);
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  onScroll(): void {
+    this.showScrollTop = window.scrollY > 300;
+  }
+
+  scrollToTop(): void {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   private loadStockData(): void {

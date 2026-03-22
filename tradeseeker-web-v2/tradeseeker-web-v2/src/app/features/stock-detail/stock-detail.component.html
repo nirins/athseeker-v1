@@ -9,16 +9,6 @@
         [disabled]="isLoadingOpenAI">
         {{ isLoadingOpenAI ? 'Loading...' : 'OpenAI' }}
       </button>
-      
-      <!-- <app-chart-display-mode-selector
-        [selectedMode]="selectedDisplayMode"
-        (modeChange)="onDisplayModeChange($event)">
-      </app-chart-display-mode-selector>
-      
-      <app-chart-type-selector
-        [selectedType]="selectedChartType"
-        (typeChange)="onChartTypeChange($event)">
-      </app-chart-type-selector> -->
     </div>
   </div>
 
@@ -39,7 +29,6 @@
         {{ getSentimentFromAnalysis() }}
       </div>
     </div>
-    
     <div class="analysis-content">
       <div class="analysis-points" [innerHTML]="getFormattedAnalysis()"></div>
     </div>
@@ -73,3 +62,5 @@
     </div>
   </div>
 
+  <button class="scroll-top-pill" *ngIf="showScrollTop" (click)="scrollToTop()">↑</button>
+</div>
