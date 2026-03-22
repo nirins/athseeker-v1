@@ -308,14 +308,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const toFetch = uniqueSymbols.filter(s => !alreadyLoaded.has(s));
     if (toFetch.length === 0) return;
 
-    const CHUNK_SIZE = 10;
-    const chunks: string[][] = [];
-    for (let i = 0; i < toFetch.length; i += CHUNK_SIZE) {
-      chunks.push(toFetch.slice(i, i + CHUNK_SIZE));
-    }
+    // Pre-allocate slots in score order
+    const slots = new Array<StockData | null>(toFetch.length).fill(null);
+    const baseIndex = this.stockDataArray.length;
 
-    // Fire all chunk requests in parallel
-    chunks.forEach(chunk => {
+    const CHUNK_SIZE = 10;
+    for (let i = 0; i < toFetch.length; i += CHUNK_SIZE) {
+      const chunk = toFetch.slice(i, i + CHUNK_SIZE);
+      const chunkStartIndex = i;
+
       this.apiService.getBatchStockData(chunk).pipe(
         takeUntil(this.destroy$),
         catchError(error => {
@@ -323,17 +324,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
           return of(new Map<string, any>());
         })
       ).subscribe(resultMap => {
-        // Append in original symbol order for this chunk
-        const ordered: StockData[] = [];
-        for (const symbol of chunk) {
+        // Fill slots at their correct positions
+        chunk.forEach((symbol, j) => {
           const data = resultMap.get(symbol);
-          if (data) ordered.push(data);
-        }
-        if (ordered.length > 0) {
-          this.stockDataArray = [...this.stockDataArray, ...ordered];
-        }
+          if (data) slots[chunkStartIndex + j] = data;
+        });
+
+        // Rebuild stockDataArray: base + all non-null slots in order
+        const ordered = slots.filter((s): s is StockData => s !== null);
+        this.stockDataArray = [
+          ...this.stockDataArray.slice(0, baseIndex),
+          ...ordered
+        ];
       });
-    });
+    }
   }
   
   /**
