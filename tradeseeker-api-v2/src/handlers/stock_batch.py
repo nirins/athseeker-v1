@@ -42,7 +42,6 @@ def handle_stock_batch(query_params: Dict[str, Any]) -> dict:
         db_client = DynamoDBClient()
         items = db_client.batch_get_stock_prices(symbols)
 
-        # Index by symbol for O(1) lookup
         results = {item['symbol']: item for item in items}
 
         return success_response({

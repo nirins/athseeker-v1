@@ -298,34 +298,41 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Fetch stock data via single batch request and render in symbol order
+   * Fetch stock data via batched requests (10 symbols per request, parallel)
    */
   private fetchStockDataAsync(symbols: string[]): void {
     const uniqueSymbols = [...new Set(symbols)];
     if (uniqueSymbols.length === 0) return;
 
-    // Check cache first — skip symbols already in stockDataArray
     const alreadyLoaded = new Set(this.stockDataArray.map(s => s.symbol));
     const toFetch = uniqueSymbols.filter(s => !alreadyLoaded.has(s));
-
     if (toFetch.length === 0) return;
 
-    this.apiService.getBatchStockData(toFetch).pipe(
-      takeUntil(this.destroy$),
-      catchError(error => {
-        console.error('Batch fetch error:', error);
-        return of(new Map<string, any>());
-      })
-    ).subscribe(resultMap => {
-      // Append in original symbol order
-      const ordered: StockData[] = [];
-      for (const symbol of toFetch) {
-        const data = resultMap.get(symbol);
-        if (data) ordered.push(data);
-      }
-      if (ordered.length > 0) {
-        this.stockDataArray = [...this.stockDataArray, ...ordered];
-      }
+    const CHUNK_SIZE = 10;
+    const chunks: string[][] = [];
+    for (let i = 0; i < toFetch.length; i += CHUNK_SIZE) {
+      chunks.push(toFetch.slice(i, i + CHUNK_SIZE));
+    }
+
+    // Fire all chunk requests in parallel
+    chunks.forEach(chunk => {
+      this.apiService.getBatchStockData(chunk).pipe(
+        takeUntil(this.destroy$),
+        catchError(error => {
+          console.error('Batch fetch error:', error);
+          return of(new Map<string, any>());
+        })
+      ).subscribe(resultMap => {
+        // Append in original symbol order for this chunk
+        const ordered: StockData[] = [];
+        for (const symbol of chunk) {
+          const data = resultMap.get(symbol);
+          if (data) ordered.push(data);
+        }
+        if (ordered.length > 0) {
+          this.stockDataArray = [...this.stockDataArray, ...ordered];
+        }
+      });
     });
   }
   
