@@ -134,6 +134,6 @@
   <div class="scroll-top-pill" *ngIf="showScrollTop" (click)="scrollToTop()">↑</div>
 
   <!-- Auth pill -->
-  <button class="auth-pill" *ngIf="isAuthenticated" (click)="signOut()">Sign out</button>
-  <a routerLink="/login" class="auth-pill" *ngIf="!isAuthenticated">Sign in</a>
+  <button class="auth-pill" *ngIf="isAuthenticated" (click)="signOut()">←</button>
+  <a routerLink="/login" class="auth-pill" *ngIf="!isAuthenticated">→</a>
 </div>
