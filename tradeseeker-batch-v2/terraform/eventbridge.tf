@@ -73,6 +73,36 @@ resource "aws_scheduler_schedule" "us_market_trigger" {
   }
 }
 
+# EventBridge Scheduler for X Poster at 9 PM New York time Mon-Fri
+resource "aws_scheduler_schedule" "x_poster_trigger" {
+  name        = "${local.name_prefix}-x-poster-trigger"
+  description = "Trigger X Poster Lambda at 9 PM New York time Mon-Fri"
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  # 9 PM New York EST = 2 AM UTC, Mon-Fri
+  schedule_expression = "cron(0 2 ? * TUE-SAT *)"
+
+  state = "ENABLED"
+
+  target {
+    arn      = aws_lambda_function.x_poster.arn
+    role_arn = aws_iam_role.scheduler_role.arn
+
+    input = jsonencode({})
+  }
+}
+
+resource "aws_lambda_permission" "allow_scheduler_invoke_x_poster" {
+  statement_id  = "AllowSchedulerInvokeXPoster"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.x_poster.function_name
+  principal     = "scheduler.amazonaws.com"
+  source_arn    = aws_scheduler_schedule.x_poster_trigger.arn
+}
+
 # EventBridge Scheduler for CC market at 8 AM Thailand time
 resource "aws_scheduler_schedule" "cc_market_trigger" {
   name        = "${local.name_prefix}-cc-market-trigger"
@@ -131,7 +161,10 @@ resource "aws_iam_role_policy" "scheduler_invoke_lambda" {
         Action = [
           "lambda:InvokeFunction"
         ]
-        Resource = aws_lambda_function.task_generator.arn
+        Resource = [
+          aws_lambda_function.task_generator.arn,
+          aws_lambda_function.x_poster.arn
+        ]
       }
     ]
   })
