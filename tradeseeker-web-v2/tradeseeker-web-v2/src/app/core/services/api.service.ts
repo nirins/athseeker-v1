@@ -152,7 +152,7 @@ export class ApiService {
     const now = Date.now();
 
     for (const symbol of symbols) {
-      const cached = this.stockCache.get(symbol);
+      const cached = this.stockCache.get(`batch_${symbol}`);
       if (cached && now - cached.timestamp < this.CACHE_TTL_MS) {
         resultMap.set(symbol, cached.data);
       } else {
@@ -174,7 +174,7 @@ export class ApiService {
         for (const [symbol, raw] of Object.entries(results)) {
           try {
             const data = this.validateStockData(raw);
-            this.stockCache.set(symbol, { data, timestamp: now });
+            this.stockCache.set(`batch_${symbol}`, { data, timestamp: now });
             resultMap.set(symbol, data);
           } catch (e) {
             console.warn(`Skipping invalid batch data for ${symbol}:`, e);
