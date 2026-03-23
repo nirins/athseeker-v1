@@ -1,7 +1,7 @@
 # TradeSeekerV2 - Root Makefile
 # Orchestrates all three components: API, Batch, and Web
 
-.PHONY: help all api batch web ios deploy-all clean test status train train-migrate train-check train-install train-analyze train-apply model-list model-switch model-test model-config
+.PHONY: help all api batch web ios deploy-all clean test status train train-migrate train-check train-install train-analyze train-apply model-list model-switch model-test model-config dynamodb
 
 # Default target
 help:
@@ -29,6 +29,7 @@ help:
 	@echo "  make ath-info      - Show ATH table information"
 	@echo "  make ath-clear     - Clear all ATH records (keep table structure)"
 	@echo "  make ath-recreate  - Delete and recreate ATH table"
+	@echo "  make dynamodb      - Delete and recreate ALL DynamoDB tables"
 	@echo ""
 	@echo "Individual operations:"
 	@echo "  make deploy-all - Deploy all components"
@@ -223,3 +224,9 @@ ath-clear:
 ath-recreate:
 	@echo "🔨 Recreating ATH table..."
 	@cd tradeseeker-batch-v2 && $(MAKE) ath-recreate
+
+# Recreate all DynamoDB tables
+dynamodb:
+	@echo "🗄️  Recreating all DynamoDB tables..."
+	@cd tradeseeker-batch-v2 && python3 scripts/recreate_tables.py
+	@echo "✅ DynamoDB tables recreated!"
