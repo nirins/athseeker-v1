@@ -21,6 +21,12 @@ variable "bucket_name" {
   type        = string
 }
 
+variable "domain_name" {
+  description = "Custom domain name for CloudFront (e.g. athseeker.com)"
+  type        = string
+  default     = ""
+}
+
 variable "cloudfront_price_class" {
   description = "CloudFront price class"
   type        = string

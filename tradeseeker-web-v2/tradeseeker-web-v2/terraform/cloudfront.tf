@@ -66,8 +66,18 @@ resource "aws_cloudfront_distribution" "website" {
     }
   }
 
+  aliases = var.domain_name != "" ? [var.domain_name, "www.${var.domain_name}"] : []
+
   viewer_certificate {
-    cloudfront_default_certificate = true
+    acm_certificate_arn      = aws_acm_certificate_validation.website.certificate_arn
+    ssl_support_method       = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2021"
+  }
+
+  logging_config {
+    bucket          = aws_s3_bucket.cloudfront_logs.bucket_regional_domain_name
+    prefix          = "cloudfront/"
+    include_cookies = false
   }
 
   tags = {
