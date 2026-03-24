@@ -1,7 +1,7 @@
 # TradeSeekerV2 - Root Makefile
 # Orchestrates all three components: API, Batch, and Web
 
-.PHONY: help all api batch web ios deploy-all clean test status train train-migrate train-check train-install train-analyze train-apply model-list model-switch model-test model-config dynamodb
+.PHONY: help all api batch web ios deploy-all clean test status train train-migrate train-check train-install train-analyze train-apply model-list model-switch model-test model-config dynamodb x-poster
 
 # Default target
 help:
@@ -13,6 +13,7 @@ help:
 	@echo "  make batch      - Build and deploy Batch processing only"
 	@echo "  make web        - Build and deploy Web frontend only"
 	@echo "  make ios        - Build web and open iOS project in Xcode"
+	@echo "  make x-poster   - Package and deploy X Poster Lambda"
 	@echo "  make train      - Run beauty score model calibration workflow"
 	@echo ""
 	@echo "Training data management:"
@@ -224,6 +225,12 @@ ath-clear:
 ath-recreate:
 	@echo "🔨 Recreating ATH table..."
 	@cd tradeseeker-batch-v2 && $(MAKE) ath-recreate
+
+# X Poster - package and deploy
+x-poster:
+	@echo "🐦 Packaging and deploying X Poster Lambda..."
+	@cd tradeseeker-batch-v2 && $(MAKE) deploy-x-poster
+	@echo "✅ X Poster deployed!"
 
 # Recreate all DynamoDB tables
 dynamodb:

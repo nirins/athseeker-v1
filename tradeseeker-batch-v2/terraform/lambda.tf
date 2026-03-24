@@ -111,22 +111,31 @@ resource "aws_lambda_function" "dlq_replay" {
 }
 
 # X Poster Lambda
+resource "aws_s3_object" "x_poster_zip" {
+  bucket = aws_s3_bucket.stock_prices.id
+  key    = "lambda-packages/x-poster.zip"
+  source = "${path.module}/../lambdas/x-poster/x-poster.zip"
+  etag   = fileexists("${path.module}/../lambdas/x-poster/x-poster.zip") ? filemd5("${path.module}/../lambdas/x-poster/x-poster.zip") : null
+}
+
 resource "aws_lambda_function" "x_poster" {
-  filename         = "${path.module}/../lambdas/x-poster/x-poster.zip"
+  s3_bucket        = aws_s3_bucket.stock_prices.id
+  s3_key           = aws_s3_object.x_poster_zip.key
+  source_code_hash = fileexists("${path.module}/../lambdas/x-poster/x-poster.zip") ? filebase64sha256("${path.module}/../lambdas/x-poster/x-poster.zip") : null
   function_name    = local.x_poster_name
   role             = aws_iam_role.x_poster.arn
   handler          = "handler.handler"
-  source_code_hash = fileexists("${path.module}/../lambdas/x-poster/x-poster.zip") ? filebase64sha256("${path.module}/../lambdas/x-poster/x-poster.zip") : null
   runtime          = "python3.12"
-  timeout          = 60
-  memory_size      = 256
+  timeout          = 120
+  memory_size      = 512
 
   environment {
     variables = {
-      ENVIRONMENT    = local.environment
-      ATH_TABLE_NAME = aws_dynamodb_table.ath_detections.name
-      X_SECRET_NAME  = local.x_secret_name
-      MARKET_CODE    = "US"
+      ENVIRONMENT      = local.environment
+      ATH_TABLE_NAME   = aws_dynamodb_table.ath_detections.name
+      PRICES_TABLE_NAME = aws_dynamodb_table.stock_prices_lite.name
+      X_SECRET_NAME    = local.x_secret_name
+      MARKET_CODE      = "US"
     }
   }
 

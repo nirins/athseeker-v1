@@ -4,22 +4,20 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LAMBDA_DIR="$SCRIPT_DIR/../lambdas/x-poster"
 
-echo "📦 Packaging X Poster Lambda..."
+echo "📦 Packaging X Poster Lambda (linux/amd64)..."
 
 cd "$LAMBDA_DIR"
+rm -rf package x-poster.zip
 
-# Install dependencies into package dir
-rm -rf package
-mkdir package
-pip install -r requirements.txt -t package/ --quiet
+docker run --rm \
+  --entrypoint bash \
+  --platform linux/amd64 \
+  -v "$(pwd)":/out \
+  public.ecr.aws/lambda/python:3.12 \
+  -c "pip install -r /out/requirements.txt -t /out/package --quiet && echo DONE"
 
-# Copy handler
 cp handler.py package/
-
-# Zip it up
-cd package
-zip -r ../x-poster.zip . --quiet
-cd ..
+cd package && zip -r ../x-poster.zip . --quiet && cd ..
 rm -rf package
 
 echo "✅ x-poster.zip created at $LAMBDA_DIR/x-poster.zip"

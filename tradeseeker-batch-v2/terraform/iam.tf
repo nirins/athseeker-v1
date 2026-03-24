@@ -258,6 +258,11 @@ resource "aws_iam_role_policy" "x_poster" {
       },
       {
         Effect   = "Allow"
+        Action   = ["dynamodb:GetItem"]
+        Resource = aws_dynamodb_table.stock_prices_lite.arn
+      },
+      {
+        Effect   = "Allow"
         Action   = ["secretsmanager:GetSecretValue"]
         Resource = "arn:aws:secretsmanager:${var.aws_region}:${local.aws_account_id}:secret:${local.x_secret_name}-*"
       }
