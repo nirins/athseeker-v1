@@ -23,22 +23,11 @@ export class LandingComponent implements OnInit {
   }
 
   navigateToLogin(): void {
-    // If user is already authenticated, go directly to dashboard
-    // Otherwise, go to login page
-    if (this.authService.isAuthenticated()) {
-      this.router.navigate(['/dashboard']);
-    } else {
-      this.router.navigate(['/login']);
-    }
+    this.router.navigate(['/dashboard']);
   }
 
   startFindingWinners(): void {
-    // Same logic as navigateToLogin - check auth status and redirect accordingly
-    if (this.authService.isAuthenticated()) {
-      this.router.navigate(['/dashboard']);
-    } else {
-      this.router.navigate(['/login']);
-    }
+    this.router.navigate(['/dashboard']);
   }
 
   scrollToLearnMore(): void {

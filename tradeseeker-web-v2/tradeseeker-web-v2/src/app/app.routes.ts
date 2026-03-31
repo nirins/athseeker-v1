@@ -26,8 +26,7 @@ export const routes: Routes = [
   },
   {
     path: 'stock/:symbol',
-    loadComponent: () => import('./features/stock-detail/stock-detail.component').then(m => m.StockDetailComponent),
-    canActivate: [AuthGuard]
+    loadComponent: () => import('./features/stock-detail/stock-detail.component').then(m => m.StockDetailComponent)
   },
   {
     path: '**',
