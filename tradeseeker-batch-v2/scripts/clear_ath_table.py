@@ -130,7 +130,17 @@ def clear_ath_table(recreate=False):
                     'PointInTimeRecoveryEnabled': True
                 }
             )
-            
+
+            # Enable TTL
+            print("⏱️  Enabling TTL...")
+            dynamodb_client.update_time_to_live(
+                TableName=table_name,
+                TimeToLiveSpecification={
+                    'Enabled': True,
+                    'AttributeName': 'ttl'
+                }
+            )
+
             print("✅ Table created successfully")
             
         except ClientError as e:
