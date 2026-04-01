@@ -104,7 +104,7 @@ class NearATHDetector:
                 'percentage_gain': round(percentage_gain, 2),
                 'market_code': market_code,
                 'detected_at': datetime.now().isoformat(),
-                'ttl': int((datetime.now() + timedelta(days=30)).timestamp())
+                'ttl': int((datetime.now() + timedelta(days=2)).timestamp())
             }
 
         except Exception as e:

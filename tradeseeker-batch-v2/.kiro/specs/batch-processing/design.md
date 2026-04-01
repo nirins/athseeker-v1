@@ -567,7 +567,7 @@ def check_and_save_ath_detection(symbol: str, market_code: str, price_data: List
                 'ath_percentage_gain': round(percentage_gain, 2),
                 'market_code': market_code,
                 'detected_at': datetime.now().isoformat(),
-                'ttl': int((datetime.now() + timedelta(days=30)).timestamp())
+                'ttl': int((datetime.now() + timedelta(days=2)).timestamp())
             }
             
             save_ath_detection(ath_detection)

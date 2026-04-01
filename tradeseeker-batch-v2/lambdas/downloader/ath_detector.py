@@ -86,7 +86,7 @@ class ATHDetector:
                                 'ath_percentage_gain': round(percentage_gain, 2),
                                 'market_code': market_code,
                                 'detected_at': datetime.now().isoformat(),
-                                'ttl': int((datetime.now() + timedelta(days=14)).timestamp())
+                                'ttl': int((datetime.now() + timedelta(days=2)).timestamp())
                             }
                 
                 # Update running maximum and minimum
