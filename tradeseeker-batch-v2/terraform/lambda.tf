@@ -151,31 +151,11 @@ resource "aws_lambda_function" "x_poster" {
   )
 }
 
+
+
+
 resource "aws_cloudwatch_log_group" "x_poster" {
   name              = "/aws/lambda/${local.x_poster_name}"
   retention_in_days = 14
   tags              = local.common_tags
-}
-
-# EventBridge schedule to trigger X poster daily
-resource "aws_cloudwatch_event_rule" "x_poster_schedule" {
-  name                = "${local.x_poster_name}-schedule"
-  description         = "Daily trigger for X poster Lambda"
-  schedule_expression = "cron(0 22 * * ? *)"  # 5 AM Thailand time (UTC+7)
-  state               = "ENABLED"
-  tags                = local.common_tags
-}
-
-resource "aws_cloudwatch_event_target" "x_poster_schedule" {
-  rule      = aws_cloudwatch_event_rule.x_poster_schedule.name
-  target_id = "x-poster-lambda"
-  arn       = aws_lambda_function.x_poster.arn
-}
-
-resource "aws_lambda_permission" "x_poster_eventbridge" {
-  statement_id  = "AllowEventBridgeInvokeXPoster"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.x_poster.function_name
-  principal     = "events.amazonaws.com"
-  source_arn    = aws_cloudwatch_event_rule.x_poster_schedule.arn
 }
