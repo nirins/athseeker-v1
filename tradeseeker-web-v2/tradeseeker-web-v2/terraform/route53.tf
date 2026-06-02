@@ -4,17 +4,19 @@ data "aws_route53_zone" "website" {
   private_zone = false
 }
 
-# ACM DNS validation records
+# ACM DNS validation records (for both athseeker.com and everyath.com)
 resource "aws_route53_record" "acm_validation" {
   for_each = {
     for dvo in aws_acm_certificate.website.domain_validation_options : dvo.domain_name => {
       name   = dvo.resource_record_name
       type   = dvo.resource_record_type
       record = dvo.resource_record_value
+      # Determine which hosted zone to use based on domain
+      zone_id = length(regexall(".*everyath\\.com", dvo.domain_name)) > 0 ? aws_route53_zone.everyath.zone_id : data.aws_route53_zone.website.zone_id
     }
   }
 
-  zone_id = data.aws_route53_zone.website.zone_id
+  zone_id = each.value.zone_id
   name    = each.value.name
   type    = each.value.type
   records = [each.value.record]
@@ -38,6 +40,32 @@ resource "aws_route53_record" "root" {
 resource "aws_route53_record" "www" {
   zone_id = data.aws_route53_zone.website.zone_id
   name    = "www.${var.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = aws_cloudfront_distribution.website.domain_name
+    zone_id                = aws_cloudfront_distribution.website.hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+
+# everyath.com -> CloudFront (A alias)
+resource "aws_route53_record" "everyath_root" {
+  zone_id = aws_route53_zone.everyath.zone_id
+  name    = var.new_domain_name
+  type    = "A"
+
+  alias {
+    name                   = aws_cloudfront_distribution.website.domain_name
+    zone_id                = aws_cloudfront_distribution.website.hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+
+# www.everyath.com -> CloudFront (A alias)
+resource "aws_route53_record" "everyath_www" {
+  zone_id = aws_route53_zone.everyath.zone_id
+  name    = "www.${var.new_domain_name}"
   type    = "A"
 
   alias {

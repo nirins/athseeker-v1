@@ -66,10 +66,16 @@ resource "aws_cloudfront_distribution" "website" {
     }
   }
 
-  aliases = var.domain_name != "" ? [var.domain_name, "www.${var.domain_name}"] : []
+  # Support both athseeker.com and everyath.com
+  aliases = compact([
+    var.domain_name,
+    var.domain_name != "" ? "www.${var.domain_name}" : "",
+    var.new_domain_name,
+    var.new_domain_name != "" ? "www.${var.new_domain_name}" : ""
+  ])
 
   viewer_certificate {
-    acm_certificate_arn      = aws_acm_certificate_validation.website.certificate_arn
+    acm_certificate_arn      = aws_acm_certificate.multi_domain.arn
     ssl_support_method       = "sni-only"
     minimum_protocol_version = "TLSv1.2_2021"
   }

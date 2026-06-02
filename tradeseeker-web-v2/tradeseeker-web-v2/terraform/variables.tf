@@ -27,6 +27,12 @@ variable "domain_name" {
   default     = ""
 }
 
+variable "new_domain_name" {
+  description = "New domain name for CloudFront (e.g. everyath.com)"
+  type        = string
+  default     = "everyath.com"
+}
+
 variable "cloudfront_price_class" {
   description = "CloudFront price class"
   type        = string
