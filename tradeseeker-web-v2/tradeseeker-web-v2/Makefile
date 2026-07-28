@@ -102,3 +102,24 @@ quick-deploy:
 	@echo "⚡ Quick deploy (using existing build)..."
 	./scripts/deploy.sh $(BUCKET_NAME) $(DISTRIBUTION_ID)
 	@echo "✅ Quick deployment complete!"
+
+# iOS build targets
+.PHONY: ios
+ios: build
+	@echo "📱 Building iOS app..."
+	@echo "📦 Syncing web assets to iOS..."
+	npx cap sync ios
+	@echo "🍎 Opening Xcode..."
+	npx cap open ios
+	@echo "✅ iOS project ready! Build and run from Xcode."
+
+.PHONY: ios-sync
+ios-sync: build
+	@echo "📦 Syncing web assets to iOS..."
+	npx cap sync ios
+	@echo "✅ iOS sync complete!"
+
+.PHONY: ios-open
+ios-open:
+	@echo "🍎 Opening iOS project in Xcode..."
+	npx cap open ios
