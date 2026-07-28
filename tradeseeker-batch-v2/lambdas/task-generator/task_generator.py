@@ -275,12 +275,12 @@ class TaskGenerator:
                         continue
                     
                     # Be more careful with single letter suffixes - only filter if combined with other indicators
-                    if len(code) > 4 and code[-1] in 'ABCDEF' and any(keyword in name.lower() for keyword in ['class', 'series']):
+                    if len(code) > 4 and code[-1] in 'ABCDEF' and any(keyword in (name or '').lower() for keyword in ['class', 'series']):
                         filter_stats['derivative_suffix'] += 1
                         continue
                     
                     # Filter out symbols that are clearly ETFs, REITs, or funds by name
-                    name_lower = name.lower()
+                    name_lower = (name or '').lower()
                     excluded_keywords = [
                         'etf', 'fund', 'trust', 'reit', 'index', 'spdr', 'ishares', 
                         'vanguard', 'invesco', 'proshares', 'direxion', 'leveraged',
@@ -323,7 +323,7 @@ class TaskGenerator:
                     # This handles cases where exchange names might be slightly different
                     if exchange not in major_exchanges and exchange not in excluded_exchanges:
                         # Check if it contains keywords that suggest it's a major exchange
-                        exchange_lower = exchange.lower()
+                        exchange_lower = (exchange or '').lower()
                         if not any(keyword in exchange_lower for keyword in ['nasdaq', 'nyse', 'amex', 'american']):
                             filter_stats['wrong_exchange'] += 1
                             continue
