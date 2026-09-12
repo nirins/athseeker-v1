@@ -722,6 +722,7 @@ resource "aws_api_gateway_deployment" "tradeseeker_api" {
     aws_api_gateway_integration.watchlist_get_lambda,
     aws_api_gateway_integration.watchlist_post_lambda,
     aws_api_gateway_integration.watchlist_delete_lambda,
+    aws_api_gateway_integration.stock_refresh_lambda,
     aws_api_gateway_integration.golden_crosses_options,
     aws_api_gateway_integration.death_crosses_options,
     aws_api_gateway_integration.ath_options,
@@ -760,6 +761,7 @@ resource "aws_api_gateway_deployment" "tradeseeker_api" {
       aws_api_gateway_resource.training_data.id,
       aws_api_gateway_resource.training_data_save_by_grade.id,
       aws_api_gateway_resource.watchlist.id,
+      aws_api_gateway_resource.stock_refresh.id,
       aws_api_gateway_method.golden_crosses_get.id,
       aws_api_gateway_method.death_crosses_get.id,
       aws_api_gateway_method.ath_get.id,
@@ -773,6 +775,8 @@ resource "aws_api_gateway_deployment" "tradeseeker_api" {
       aws_api_gateway_method.watchlist_post.id,
       aws_api_gateway_method.watchlist_delete.id,
       aws_api_gateway_method.watchlist_options.id,
+      aws_api_gateway_method.stock_refresh_post.id,
+      aws_api_gateway_method.stock_refresh_options.id,
       aws_api_gateway_method.golden_crosses_options.id,
       aws_api_gateway_method.death_crosses_options.id,
       aws_api_gateway_method.ath_options.id,
@@ -794,6 +798,8 @@ resource "aws_api_gateway_deployment" "tradeseeker_api" {
       aws_api_gateway_integration.watchlist_get_lambda.id,
       aws_api_gateway_integration.watchlist_post_lambda.id,
       aws_api_gateway_integration.watchlist_delete_lambda.id,
+      aws_api_gateway_integration.stock_refresh_lambda.id,
+      aws_api_gateway_integration.stock_refresh_options.id,
       aws_api_gateway_integration.golden_crosses_options.id,
       aws_api_gateway_integration.death_crosses_options.id,
       aws_api_gateway_integration.ath_options.id,
@@ -862,6 +868,85 @@ resource "aws_lambda_permission" "api_gateway" {
   function_name = aws_lambda_function.tradeseeker_api.function_name
   principal     = "apigateway.amazonaws.com"
   source_arn    = "${aws_api_gateway_rest_api.tradeseeker_api.execution_arn}/*/*"
+}
+
+# POST /stocks/{symbol}/refresh resource
+resource "aws_api_gateway_resource" "stock_refresh" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  parent_id   = aws_api_gateway_resource.stock_symbol.id
+  path_part   = "refresh"
+}
+
+# POST method for /stocks/{symbol}/refresh
+resource "aws_api_gateway_method" "stock_refresh_post" {
+  rest_api_id   = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id   = aws_api_gateway_resource.stock_refresh.id
+  http_method   = "POST"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "stock_refresh_lambda" {
+  rest_api_id             = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id             = aws_api_gateway_resource.stock_refresh.id
+  http_method             = aws_api_gateway_method.stock_refresh_post.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.tradeseeker_api.invoke_arn
+}
+
+resource "aws_api_gateway_method_response" "stock_refresh_post" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id = aws_api_gateway_resource.stock_refresh.id
+  http_method = aws_api_gateway_method.stock_refresh_post.http_method
+  status_code = "200"
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = true
+  }
+}
+
+# CORS for /stocks/{symbol}/refresh
+resource "aws_api_gateway_method" "stock_refresh_options" {
+  rest_api_id   = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id   = aws_api_gateway_resource.stock_refresh.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "stock_refresh_options" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id = aws_api_gateway_resource.stock_refresh.id
+  http_method = aws_api_gateway_method.stock_refresh_options.http_method
+  type        = "MOCK"
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "stock_refresh_options" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id = aws_api_gateway_resource.stock_refresh.id
+  http_method = aws_api_gateway_method.stock_refresh_options.http_method
+  status_code = "200"
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+  response_models = {
+    "application/json" = "Empty"
+  }
+}
+
+resource "aws_api_gateway_integration_response" "stock_refresh_options" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id = aws_api_gateway_resource.stock_refresh.id
+  http_method = aws_api_gateway_method.stock_refresh_options.http_method
+  status_code = aws_api_gateway_method_response.stock_refresh_options.status_code
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods" = "'POST,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
 }
 # /training-data resource
 resource "aws_api_gateway_resource" "training_data" {

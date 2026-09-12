@@ -14,6 +14,7 @@ from src.handlers.death_crosses import handle_death_crosses
 from src.handlers.stock_price import handle_stock_price
 from src.handlers.stock_history import handle_stock_history
 from src.handlers.stock_batch import handle_stock_batch
+from src.handlers.stock_refresh import handle_stock_refresh
 from src.handlers.ath_stocks import handle_ath_stocks
 from src.handlers.near_ath_stocks import handle_near_ath_stocks
 from src.handlers.openai_summary import handle_openai_summary
@@ -153,6 +154,14 @@ def _route_post_request(path: str, body: Dict[str, Any]) -> dict:
     if path == '/watchlist':
         logger.info("Routing to watchlist handler (add)")
         return handle_add_to_watchlist(body)
+
+    # Route: POST /stocks/{symbol}/refresh
+    refresh_pattern = r'^/stocks/([^/]+)/refresh$'
+    refresh_match = re.match(refresh_pattern, path)
+    if refresh_match:
+        symbol = refresh_match.group(1)
+        logger.info(f"Routing to stock_refresh handler with symbol={symbol}")
+        return handle_stock_refresh(symbol)
 
     # Route: POST /training-data/save-by-grade
     if path == '/training-data/save-by-grade':

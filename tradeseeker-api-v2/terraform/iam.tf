@@ -174,3 +174,32 @@ resource "aws_iam_role_policy_attachment" "lambda_s3_training_data" {
   role       = aws_iam_role.lambda_execution.name
   policy_arn = aws_iam_policy.s3_training_data_write.arn
 }
+
+# SQS policy — allow API Lambda to send refresh tasks to the batch download queue
+resource "aws_iam_policy" "sqs_send_refresh" {
+  name        = "${var.project_name}-${var.environment}-sqs-send-refresh"
+  description = "Allow API Lambda to send messages to the batch download queue"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "sqs:SendMessage",
+          "sqs:GetQueueUrl"
+        ]
+        Resource = "arn:aws:sqs:${var.aws_region}:*:ts-batch-v2-${var.environment}-download-queue"
+      }
+    ]
+  })
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-sqs-send-refresh"
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_sqs_send_refresh" {
+  role       = aws_iam_role.lambda_execution.name
+  policy_arn = aws_iam_policy.sqs_send_refresh.arn
+}

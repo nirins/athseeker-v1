@@ -15,12 +15,23 @@
     <div class="controls">
       <button 
         class="openai-button"
+        (click)="refreshData()"
+        [disabled]="isRefreshing"
+        [title]="'Fetch latest data from EODHD for ' + symbol">
+        {{ isRefreshing ? 'Refreshing...' : 'Refresh' }}
+      </button>
+      <button 
+        class="openai-button"
         (click)="getOpenAIAnalysis()"
         [disabled]="isLoadingOpenAI">
         {{ isLoadingOpenAI ? 'Loading...' : 'OpenAI' }}
       </button>
     </div>
   </div>
+
+  <!-- Refresh toast notifications -->
+  <div class="refresh-toast refresh-toast--success" *ngIf="refreshMessage">✓ {{ refreshMessage }}</div>
+  <div class="refresh-toast refresh-toast--error" *ngIf="refreshError">✗ {{ refreshError }}</div>
 
   <div class="loading-container" *ngIf="isLoading">
     <app-loading-spinner></app-loading-spinner>

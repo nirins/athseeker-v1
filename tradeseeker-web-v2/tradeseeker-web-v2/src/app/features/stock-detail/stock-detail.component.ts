@@ -60,6 +60,11 @@ export class StockDetailComponent implements OnInit, OnDestroy {
   openAIAnalysis: OpenAIAnalysisResponse['data'] | null = null;
   isLoadingOpenAI = false;
   openAIError: string | null = null;
+
+  // Refresh properties
+  isRefreshing = false;
+  refreshMessage: string | null = null;
+  refreshError: string | null = null;
   
   private destroy$ = new Subject<void>();
   
@@ -265,6 +270,36 @@ export class StockDetailComponent implements OnInit, OnDestroy {
     }
     
     return `${timeRange.label}: ${stockData.prices.length}/${timeRange.days} data points`;
+  }
+
+  /**
+   * Request a data refresh from EODHD via the API
+   */
+  refreshData(): void {
+    if (!this.symbol || this.isRefreshing) return;
+
+    this.isRefreshing = true;
+    this.refreshMessage = null;
+    this.refreshError = null;
+
+    const apiUrl = `https://56qpa0i92h.execute-api.ap-southeast-1.amazonaws.com/dev/stocks/${encodeURIComponent(this.symbol)}/refresh`;
+
+    this.http.post<any>(apiUrl, {}).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe({
+      next: (response) => {
+        this.isRefreshing = false;
+        this.refreshMessage = response?.data?.message || `Refresh queued for ${this.symbol}. Data will update in ~1–2 minutes.`;
+        // Auto-clear message after 6 seconds
+        setTimeout(() => { this.refreshMessage = null; }, 6000);
+      },
+      error: (error) => {
+        console.error('Error requesting refresh:', error);
+        this.isRefreshing = false;
+        this.refreshError = `Failed to queue refresh for ${this.symbol}. Please try again.`;
+        setTimeout(() => { this.refreshError = null; }, 6000);
+      }
+    });
   }
 
   /**
