@@ -13,8 +13,9 @@ resource "aws_lambda_function" "task_generator" {
 
   environment {
     variables = {
-      ENVIRONMENT   = local.environment
-      SQS_QUEUE_URL = aws_sqs_queue.main.url
+      ENVIRONMENT          = local.environment
+      SQS_QUEUE_URL        = aws_sqs_queue.main.url
+      WATCHLIST_TABLE_NAME = "ts-api-v2-${local.environment}-watchlist"
     }
   }
 

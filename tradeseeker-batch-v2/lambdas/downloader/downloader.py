@@ -90,8 +90,17 @@ class StockDownloader:
     
     def process_and_conditionally_save(self, task: Dict, price_data: List[Dict]):
         """
-        Process price data and save to DynamoDB only if detections are found
-        
+        Process price data and save to DynamoDB only if detections are found.
+
+        Two task sources bypass that gate, because the user is explicitly
+        asking for fresh data rather than screening for signals:
+          - "manual"    (refresh button): writes the main and lite price
+                        tables, since the stock detail page reads the main one.
+          - "watchlist" (nightly batch): writes the lite table, which is what
+                        the watchlist grid reads.
+        The detection tables stay gated in both cases — a refresh must never
+        invent a cross or ATH record.
+
         Args:
             task: Task dictionary with symbol and market info
             price_data: List of price records
@@ -99,39 +108,61 @@ class StockDownloader:
         symbol = task['symbol']
         market_code = task['marketCode']
         symbol_with_market = f"{symbol}.{market_code}"
-        
+
         # Prepare and filter data
         processed_data = self.prepare_data(price_data, market_code, symbol_with_market)
         if not processed_data:
             return
-        
+
         filtered_data, moving_averages, candle_metrics = processed_data
-        
+
         # Check for any detections
         detections = self.check_all_detections(symbol_with_market, market_code, moving_averages, filtered_data)
-        
+
         if detections['has_any']:
             logger.info(f"Detections found for {symbol_with_market} - Cross: {detections['cross']}, ATH: {detections['ath']}")
-            
+
             # Save to main DynamoDB table (full history)
             self.storage.save_to_dynamodb(task, filtered_data, moving_averages, candle_metrics)
 
             # Save to lite table (360 days only, for fast batch API)
-            if self.dynamodb_lite_table:
-                from datetime import datetime, timedelta
-                cutoff = (datetime.now() - timedelta(days=360)).strftime('%Y-%m-%d')
-                lite_data = [r for r in filtered_data if r.get('date', '') >= cutoff]
-                lite_mas = [m for m in moving_averages if m.get('date', '') >= cutoff]
-                lite_storage = StorageManager(
-                    self.environment, self.s3_bucket,
-                    self.dynamodb_lite_table, self.s3, self.dynamodb
-                )
-                lite_storage.save_to_dynamodb(task, lite_data, lite_mas, candle_metrics)
-            
+            self.save_to_lite_table(task, filtered_data, moving_averages, candle_metrics)
+
             # Save specific detections
             self.save_detections(symbol_with_market, market_code, moving_averages, filtered_data, candle_metrics, detections)
+        elif task.get('source') == 'manual':
+            logger.info(f"No detections for {symbol_with_market}, refreshing price tables (manual refresh)")
+            self.storage.save_to_dynamodb(task, filtered_data, moving_averages, candle_metrics)
+            self.save_to_lite_table(task, filtered_data, moving_averages, candle_metrics)
+        elif task.get('source') == 'watchlist':
+            logger.info(f"No detections for {symbol_with_market}, refreshing lite table (watchlist)")
+            self.save_to_lite_table(task, filtered_data, moving_averages, candle_metrics)
         else:
             logger.info(f"No detections found for {symbol_with_market}, skipped DynamoDB")
+
+    def save_to_lite_table(self, task: Dict, filtered_data: List[Dict],
+                           moving_averages: List[Dict], candle_metrics: Dict):
+        """
+        Save the trailing 360 days to the lite table (for fast batch API)
+
+        Args:
+            task: Task dictionary with symbol and market info
+            filtered_data: List of price records (filtered)
+            moving_averages: List of moving average records
+            candle_metrics: Candle metrics
+        """
+        if not self.dynamodb_lite_table:
+            return
+
+        from datetime import datetime, timedelta
+        cutoff = (datetime.now() - timedelta(days=360)).strftime('%Y-%m-%d')
+        lite_data = [r for r in filtered_data if r.get('date', '') >= cutoff]
+        lite_mas = [m for m in moving_averages if m.get('date', '') >= cutoff]
+        lite_storage = StorageManager(
+            self.environment, self.s3_bucket,
+            self.dynamodb_lite_table, self.s3, self.dynamodb
+        )
+        lite_storage.save_to_dynamodb(task, lite_data, lite_mas, candle_metrics)
     
     def prepare_data(self, price_data: List[Dict], market_code: str, symbol_with_market: str):
         """

@@ -128,6 +128,31 @@ resource "aws_scheduler_schedule" "cc_market_trigger" {
   }
 }
 
+# EventBridge Scheduler for Watchlist batch — runs 1 hour after US market close (10 PM NY)
+resource "aws_scheduler_schedule" "watchlist_trigger" {
+  name        = "${local.name_prefix}-watchlist-trigger"
+  description = "Refresh all watchlist symbols daily at 10 PM New York time Mon-Fri"
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  # 10 PM New York EST = 3 AM UTC (next day), Mon-Fri
+  schedule_expression = "cron(0 3 ? * TUE-SAT *)"
+
+  state = "ENABLED"
+
+  target {
+    arn      = aws_lambda_function.task_generator.arn
+    role_arn = aws_iam_role.scheduler_role.arn
+
+    input = jsonencode({
+      date = "{{execution-time:yyyy-MM-dd}}"
+      mode = "watchlist"
+    })
+  }
+}
+
 # IAM role for EventBridge Scheduler
 resource "aws_iam_role" "scheduler_role" {
   name = "${local.name_prefix}-scheduler-role"

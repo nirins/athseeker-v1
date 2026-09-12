@@ -74,6 +74,10 @@ def handle_stock_refresh(symbol: str) -> dict:
         'symbol':     stock_code,
         'marketCode': market_code,
         'date':       today,
+        # Marks this as a user-initiated refresh. The downloader writes the
+        # price tables unconditionally for these, instead of only when a
+        # cross/ATH detection fires.
+        'source':     'manual',
     }
 
     queue_url = _get_queue_url()

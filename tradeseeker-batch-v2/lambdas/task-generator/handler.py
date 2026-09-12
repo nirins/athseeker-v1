@@ -30,6 +30,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         # Extract optional test parameters
         market_filter = event.get('market')  # e.g., "US"
         limit = event.get('limit')  # e.g., 100
+        mode = event.get('mode')   # e.g., "watchlist"
         
         logger.info(f"Starting task generation for date: {date}")
         logger.info(f"Request ID: {context.aws_request_id}")
@@ -38,6 +39,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             logger.info(f"Market filter: {market_filter}")
         if limit:
             logger.info(f"Symbol limit: {limit}")
+        if mode:
+            logger.info(f"Mode: {mode}")
         
         # Import dependencies here to avoid cold start issues
         from task_generator import TaskGenerator
@@ -47,17 +50,23 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             environment=os.environ.get('ENVIRONMENT', 'dev'),
             sqs_queue_url=os.environ['SQS_QUEUE_URL']
         )
-        
-        # Generate and send tasks
-        total_tasks = generator.generate_tasks(date, market_filter=market_filter, limit=limit)
-        
-        logger.info(f"Successfully generated {total_tasks} tasks for date {date}")
+
+        if mode == 'watchlist':
+            # Queue all unique watchlist symbols directly
+            watchlist_table = os.environ.get('WATCHLIST_TABLE_NAME', '')
+            total_tasks = generator.generate_watchlist_tasks(date, watchlist_table)
+            logger.info(f"Successfully generated {total_tasks} watchlist tasks for date {date}")
+        else:
+            # Normal market-based task generation
+            total_tasks = generator.generate_tasks(date, market_filter=market_filter, limit=limit)
+            logger.info(f"Successfully generated {total_tasks} tasks for date {date}")
         
         return {
             'statusCode': 200,
             'body': json.dumps({
                 'message': 'Task generation completed',
                 'date': date,
+                'mode': mode or 'market',
                 'market': market_filter,
                 'limit': limit,
                 'totalTasks': total_tasks

@@ -62,6 +62,12 @@ resource "aws_iam_role_policy" "task_generator" {
           "secretsmanager:GetSecretValue"
         ]
         Resource = "arn:aws:secretsmanager:${var.aws_region}:${local.aws_account_id}:secret:${local.eodhd_secret_name}-*"
+      },
+      {
+        # Allow task generator to scan watchlist table for watchlist batch mode
+        Effect = "Allow"
+        Action = ["dynamodb:Scan"]
+        Resource = "arn:aws:dynamodb:${var.aws_region}:${local.aws_account_id}:table/ts-api-v2-${local.environment}-watchlist"
       }
     ]
   })

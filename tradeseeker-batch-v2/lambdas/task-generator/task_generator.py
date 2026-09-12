@@ -379,15 +379,97 @@ class TaskGenerator:
             logger.error(f"Error fetching symbol list for {market_code}: {str(e)}")
             raise
     
-    def send_tasks_to_sqs(self, symbols: List[Dict], market_code: str, date: str) -> int:
+    def generate_watchlist_tasks(self, date: str, watchlist_table_name: str) -> int:
+        """
+        Read all unique symbols from the watchlist DynamoDB table and send
+        them directly to SQS for download, bypassing the EODHD symbol list.
+
+        Symbols are stored as e.g. AAPL.US, GGC.BK, BTC-USD.CC.
+        The market code is the part after the last dot.
+
+        Args:
+            date: Target date in YYYY-MM-DD format
+            watchlist_table_name: Name of the DynamoDB watchlist table
+
+        Returns:
+            Total number of tasks queued
+        """
+        if not watchlist_table_name:
+            logger.error("WATCHLIST_TABLE_NAME env var not set — skipping watchlist batch")
+            return 0
+
+        logger.info(f"Reading watchlist symbols from table: {watchlist_table_name}")
+
+        dynamodb = boto3.resource('dynamodb')
+        table = dynamodb.Table(watchlist_table_name)
+
+        # Scan all items (watchlist is small — typically < 1000 symbols across all users)
+        seen: set = set()
+        tasks: List[Dict] = []
+
+        try:
+            paginator_kwargs: Dict = {}
+            while True:
+                response = table.scan(**paginator_kwargs)
+                for item in response.get('Items', []):
+                    symbol_full = item.get('symbol', '').strip().upper()
+                    if not symbol_full or symbol_full in seen:
+                        continue
+                    seen.add(symbol_full)
+
+                    # Split symbol into code + market, e.g. AAPL.US → ('AAPL', 'US')
+                    if '.' in symbol_full:
+                        parts = symbol_full.rsplit('.', 1)
+                        code = parts[0]
+                        market_code = parts[1]
+                    else:
+                        code = symbol_full
+                        market_code = 'US'
+
+                    tasks.append({'Code': code, 'MarketCode': market_code})
+
+                last_key = response.get('LastEvaluatedKey')
+                if not last_key:
+                    break
+                paginator_kwargs['ExclusiveStartKey'] = last_key
+
+        except Exception as e:
+            logger.error(f"Error scanning watchlist table: {e}")
+            raise
+
+        logger.info(f"Found {len(tasks)} unique symbols in watchlist")
+
+        if not tasks:
+            return 0
+
+        # Group by market code and send via existing send_tasks_to_sqs
+        from collections import defaultdict
+        by_market: Dict[str, List[Dict]] = defaultdict(list)
+        for t in tasks:
+            by_market[t['MarketCode']].append({'Code': t['Code']})
+
+        total_sent = 0
+        for market_code, symbols in by_market.items():
+            logger.info(f"Queuing {len(symbols)} symbols for market {market_code}")
+            sent = self.send_tasks_to_sqs(symbols, market_code, date, source='watchlist')
+            total_sent += sent
+
+        logger.info(f"Total watchlist tasks queued: {total_sent}")
+        return total_sent
+
+    def send_tasks_to_sqs(self, symbols: List[Dict], market_code: str, date: str,
+                          source: str = '') -> int:
         """
         Send download tasks to SQS in batches
-        
+
         Args:
             symbols: List of symbol dictionaries
             market_code: Market code
             date: Target date
-            
+            source: Optional origin tag for the task (e.g. "watchlist"). The
+                downloader uses this to decide whether to refresh DynamoDB even
+                when no detections fire.
+
         Returns:
             Number of tasks sent
         """
@@ -414,7 +496,10 @@ class TaskGenerator:
                     'date': date,
                     'requestId': request_id
                 }
-                
+
+                if source:
+                    message['source'] = source
+
                 entries.append({
                     'Id': batch_entry_id,
                     'MessageBody': json.dumps(message)
