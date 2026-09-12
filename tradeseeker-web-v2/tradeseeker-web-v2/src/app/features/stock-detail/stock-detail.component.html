@@ -1,7 +1,17 @@
 <div class="stock-detail-container">
   <button class="back-pill" *ngIf="isNative" (click)="goBack()">‹</button>
   <div class="header">
-    <h1 class="stock-title">{{ symbol }}</h1>
+    <div class="title-group">
+      <h1 class="stock-title">{{ symbol }}</h1>
+      <button
+        class="watchlist-star-btn"
+        [class.watched]="isWatched"
+        (click)="toggleWatchlist()"
+        [title]="isWatched ? 'Remove from watchlist' : 'Add to watchlist'"
+        [attr.aria-label]="isWatched ? 'Remove ' + symbol + ' from watchlist' : 'Add ' + symbol + ' to watchlist'">
+        {{ isWatched ? '★' : '☆' }}
+      </button>
+    </div>
     <div class="controls">
       <button 
         class="openai-button"

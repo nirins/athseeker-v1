@@ -38,8 +38,8 @@ def handle_get_watchlist(query_params: Dict[str, Any]) -> dict:
             KeyConditionExpression=Key('user_id').eq(user_id)
         )
         items = result.get('Items', [])
-        # Sort by beauty_score descending, items without score go last
-        items.sort(key=lambda x: float(x.get('beauty_score', 0)), reverse=True)
+        # Sort by added_at descending (latest first), fall back to beauty_score
+        items.sort(key=lambda x: x.get('added_at', ''), reverse=True)
         symbols = [item['symbol'] for item in items]
         beauty_scores = {
             item['symbol']: float(item['beauty_score'])
@@ -65,7 +65,12 @@ def handle_add_to_watchlist(body: Dict[str, Any]) -> dict:
 
     try:
         from decimal import Decimal
-        item = {'user_id': user_id, 'symbol': symbol}
+        from datetime import datetime, timezone
+        item = {
+            'user_id': user_id,
+            'symbol': symbol,
+            'added_at': datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+        }
         if beauty_score is not None:
             item['beauty_score'] = Decimal(str(beauty_score))
         table = _get_table()

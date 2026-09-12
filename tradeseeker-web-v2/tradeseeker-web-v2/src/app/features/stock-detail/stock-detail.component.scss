@@ -35,6 +35,12 @@
   border-bottom: 2px solid #e0e0e0;
 }
 
+.title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .stock-title {
   font-size: 2rem;
   font-weight: 600;
@@ -68,6 +74,41 @@
 
   &:disabled {
     cursor: not-allowed;
+  }
+}
+
+.watchlist-star-btn {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 1px solid #cbd5e1;
+  background: white;
+  color: #94a3b8;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+
+  &:hover {
+    border-color: #f59e0b;
+    color: #f59e0b;
+    background: #fffbeb;
+  }
+
+  &.watched {
+    color: #f59e0b;
+    border-color: #f59e0b;
+    background: #fffbeb;
+
+    &:hover {
+      color: #d97706;
+      border-color: #d97706;
+      background: #fef3c7;
+    }
   }
 }
 

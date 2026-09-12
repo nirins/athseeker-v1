@@ -6,6 +6,7 @@ import { HttpClient } from '@angular/common/http';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { ApiService } from '../../core/services/api.service';
+import { WatchlistService } from '../../core/services/watchlist.service';
 import { StockData, ChartType, ChartDisplayMode } from '../../core/models';
 import { StockChartComponent } from '../dashboard/components/stock-chart/stock-chart.component';
 import { ChartTypeSelectorComponent } from '../dashboard/components/chart-type-selector/chart-type-selector.component';
@@ -79,8 +80,17 @@ export class StockDetailComponent implements OnInit, OnDestroy {
     private router: Router,
     private location: Location,
     private apiService: ApiService,
+    private watchlistService: WatchlistService,
     private http: HttpClient
   ) {}
+
+  get isWatched(): boolean {
+    return this.watchlistService.isWatched(this.symbol);
+  }
+
+  toggleWatchlist(): void {
+    this.watchlistService.toggle(this.symbol).subscribe();
+  }
 
   get isNative(): boolean {
     return !!(window as any).Capacitor?.isNativePlatform?.();
@@ -92,6 +102,9 @@ export class StockDetailComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     window.addEventListener('scroll', this.onScrollBound);
+
+    // Load watchlist state so isWatched is accurate
+    this.watchlistService.loadWatchlist().pipe(takeUntil(this.destroy$)).subscribe();
 
     // Restore chart type from session storage
     const savedChartType = sessionStorage.getItem('detailChartType') as ChartType;
