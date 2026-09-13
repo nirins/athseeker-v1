@@ -12,7 +12,9 @@ export class MarketSelectorComponent {
   @Input() selectedMarket: string = 'US';
   @Output() marketChange = new EventEmitter<string>();
 
-  markets = ['US', 'BK', 'CC'];
+  // 'CH' is a virtual code covering both Chinese exchanges (Shanghai + Shenzhen) —
+  // ApiService.withMarketExpansion() fans it out to the real SHG/SHE market codes.
+  markets = ['US', 'BK', 'CC', 'HK', 'CH'];
 
   onMarketSelect(market: string): void {
     if (market !== this.selectedMarket) {

@@ -9,6 +9,12 @@ import re
 from datetime import datetime
 from typing import Tuple, Dict, List, Any, Optional
 
+from src.config import VALID_MARKET_CODES
+
+# Symbols always carry a real exchange suffix (e.g. .SHG, .SHE) — never the
+# 'CH' virtual code the web UI merges Shanghai/Shenzhen under.
+_MARKET_SUFFIX_PATTERN = r'\.(' + '|'.join(VALID_MARKET_CODES) + r')$'
+
 
 def validate_date_format(date_str: str, param_name: str) -> Optional[str]:
     """
@@ -56,8 +62,8 @@ def validate_golden_cross_params(params: Dict[str, Any]) -> Tuple[Dict[str, Any]
     market = None
     if 'market' in params:
         market = params['market']
-        if market not in ['US', 'BK', 'CC']:
-            errors.append("market must be one of: US, BK, CC")
+        if market not in VALID_MARKET_CODES:
+            errors.append(f"market must be one of: {', '.join(VALID_MARKET_CODES)}")
         else:
             validated['market'] = market
     
@@ -175,8 +181,8 @@ def validate_ath_stocks_params(params: Dict[str, Any]) -> Tuple[Dict[str, Any], 
     # Validate market (optional)
     if 'market' in params:
         market = params['market'].upper()
-        if market not in ['US', 'BK', 'CC']:
-            errors.append("market must be one of: US, BK, CC")
+        if market not in VALID_MARKET_CODES:
+            errors.append(f"market must be one of: {', '.join(VALID_MARKET_CODES)}")
         else:
             validated['market'] = market
     
@@ -276,8 +282,8 @@ def validate_near_ath_stocks_params(params: Dict[str, Any]) -> Tuple[Dict[str, A
     # Validate market (optional)
     if 'market' in params:
         market = params['market'].upper()
-        if market not in ['US', 'BK', 'CC']:
-            errors.append("market must be one of: US, BK, CC")
+        if market not in VALID_MARKET_CODES:
+            errors.append(f"market must be one of: {', '.join(VALID_MARKET_CODES)}")
         else:
             validated['market'] = market
 
@@ -330,8 +336,8 @@ def validate_death_cross_params(params: Dict[str, Any]) -> Tuple[Dict[str, Any],
     # Validate market (US, BK, or CC)
     if 'market' in params:
         market = params['market']
-        if market not in ['US', 'BK', 'CC']:
-            errors.append("market must be one of: US, BK, CC")
+        if market not in VALID_MARKET_CODES:
+            errors.append(f"market must be one of: {', '.join(VALID_MARKET_CODES)}")
         else:
             validated['market'] = market
     
@@ -406,8 +412,8 @@ def validate_stock_price_params(symbol: str, params: Dict[str, Any]) -> Tuple[st
     validated_symbol = symbol
     if not symbol:
         errors.append("symbol is required")
-    elif not re.search(r'\.(US|BK|CC)$', symbol):
-        errors.append("symbol must contain a valid market code suffix (.US, .BK, or .CC)")
+    elif not re.search(_MARKET_SUFFIX_PATTERN, symbol):
+        errors.append(f"symbol must contain a valid market code suffix ({', '.join('.' + c for c in VALID_MARKET_CODES)})")
     
     # Validate symbol contains only valid characters (alphanumeric, dots, hyphens)
     if symbol and not re.match(r'^[A-Za-z0-9.\-]+$', symbol):
@@ -469,8 +475,8 @@ def validate_openai_summary_params(params: Dict[str, Any]) -> Tuple[Dict[str, An
     else:
         symbol = params['symbol']
         # Validate symbol format (must contain market code suffix)
-        if not re.search(r'\.(US|BK|CC)$', symbol):
-            errors.append("symbol must contain a valid market code suffix (.US, .BK, or .CC)")
+        if not re.search(_MARKET_SUFFIX_PATTERN, symbol):
+            errors.append(f"symbol must contain a valid market code suffix ({', '.join('.' + c for c in VALID_MARKET_CODES)})")
         elif not re.match(r'^[A-Za-z0-9.\-]+$', symbol):
             errors.append("symbol contains invalid characters")
         else:

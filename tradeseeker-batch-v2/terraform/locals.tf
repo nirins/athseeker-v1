@@ -52,6 +52,7 @@ locals {
   # SSM Parameter paths
   markets_parameter_name      = "/ts-batch-v2/${local.environment}/markets"
   api_endpoints_parameter_name = "/ts-batch-v2/${local.environment}/api-endpoints"
+  extra_symbols_parameter_name = "/ts-batch-v2/${local.environment}/extra-symbols"
   
   # Secrets Manager
   eodhd_secret_name = "ts-batch-v2-${local.environment}-eodhd-api-token"

@@ -31,6 +31,7 @@ class TaskGenerator:
         # Configuration
         self.markets_parameter_name = f"/ts-batch-v2/{environment}/markets"
         self.api_endpoints_parameter_name = f"/ts-batch-v2/{environment}/api-endpoints"
+        self.extra_symbols_parameter_name = f"/ts-batch-v2/{environment}/extra-symbols"
         self.secret_name = f"ts-batch-v2-{environment}-eodhd-api-token"
     
     def get_markets(self) -> List[Dict]:
@@ -71,6 +72,33 @@ class TaskGenerator:
         except Exception as e:
             logger.error(f"Error fetching API endpoints from SSM: {str(e)}")
             raise
+
+    def get_extra_symbols(self) -> Dict[str, List[str]]:
+        """
+        Retrieve the per-market extra-symbols allowlist from SSM Parameter Store.
+
+        These are symbols to queue in addition to whatever the EODHD symbol
+        list + Common Stock filter returns — for instruments EODHD tags as a
+        non-stock Type (e.g. ETF) that we still want tracked, such as BK's
+        gold and oil tracker ETFs.
+
+        Unlike markets/api-endpoints, this is optional: if the parameter is
+        missing or malformed, we log and continue with no extras rather than
+        failing the whole market's task generation.
+
+        Returns:
+            Dict mapping market code -> list of extra symbol codes
+        """
+        try:
+            response = self.ssm.get_parameter(Name=self.extra_symbols_parameter_name)
+            return json.loads(response['Parameter']['Value'])
+
+        except self.ssm.exceptions.ParameterNotFound:
+            logger.info(f"No extra-symbols parameter found at {self.extra_symbols_parameter_name}, skipping")
+            return {}
+        except Exception as e:
+            logger.warning(f"Error fetching extra symbols from SSM, skipping: {str(e)}")
+            return {}
     
     def get_api_token(self) -> str:
         """
@@ -107,7 +135,8 @@ class TaskGenerator:
         markets = self.get_markets()
         api_token = self.get_api_token()
         endpoints = self.get_api_endpoints()
-        
+        extra_symbols = self.get_extra_symbols()
+
         # Filter markets if specified
         if market_filter:
             markets = [m for m in markets if m['Code'] == market_filter]
@@ -130,7 +159,19 @@ class TaskGenerator:
                 if limit:
                     symbols = symbols[:limit]
                     logger.info(f"Limited to {len(symbols)} symbols (limit: {limit})")
-                
+
+                # Append any extra symbols configured for this market (e.g. BK's
+                # gold/oil ETFs, which EODHD's Common Stock filter excludes).
+                # Always applied, even under `limit`, since these are explicit
+                # additions rather than part of the scanned universe.
+                extras_for_market = extra_symbols.get(market_code, [])
+                if extras_for_market:
+                    existing_codes = {s.get('Code') for s in symbols}
+                    new_extras = [code for code in extras_for_market if code not in existing_codes]
+                    if new_extras:
+                        symbols = symbols + [{'Code': code} for code in new_extras]
+                        logger.info(f"Added {len(new_extras)} extra symbols for {market_code}: {new_extras}")
+
                 logger.info(f"Found {len(symbols)} symbols for market {market_code}")
                 
                 # Send tasks to SQS in batches

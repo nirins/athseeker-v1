@@ -18,6 +18,11 @@ AWS_REGION = os.environ.get('LAMBDA_REGION', 'ap-southeast-1')
 # OpenAI Configuration - retrieved from AWS Secrets Manager
 OPENAI_SECRET_NAME = os.environ.get('OPENAI_SECRET_NAME')
 
+# Market codes fed by the batch pipeline (tradeseeker-batch-v2/terraform/ssm.tf
+# "markets" list + per-market EventBridge schedules). Single source of truth
+# for validators.py — update here whenever a market is added or removed there.
+VALID_MARKET_CODES = ['US', 'BK', 'CC', 'HK', 'SHG', 'SHE']
+
 # DynamoDB Table Names
 GOLDEN_CROSSES_TABLE = os.environ.get(
     'GOLDEN_CROSSES_TABLE',

@@ -53,7 +53,8 @@ resource "aws_iam_role_policy" "task_generator" {
         ]
         Resource = [
           "arn:aws:ssm:${var.aws_region}:${local.aws_account_id}:parameter${local.markets_parameter_name}",
-          "arn:aws:ssm:${var.aws_region}:${local.aws_account_id}:parameter${local.api_endpoints_parameter_name}"
+          "arn:aws:ssm:${var.aws_region}:${local.aws_account_id}:parameter${local.api_endpoints_parameter_name}",
+          "arn:aws:ssm:${var.aws_region}:${local.aws_account_id}:parameter${local.extra_symbols_parameter_name}"
         ]
       },
       {

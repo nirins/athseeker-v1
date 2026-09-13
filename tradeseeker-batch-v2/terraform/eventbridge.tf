@@ -73,6 +73,81 @@ resource "aws_scheduler_schedule" "us_market_trigger" {
   }
 }
 
+# EventBridge Scheduler for HK market at 7 PM Hong Kong time
+resource "aws_scheduler_schedule" "hk_market_trigger" {
+  name        = "${local.name_prefix}-hk-market-trigger"
+  description = "Trigger Task Generator Lambda for HK market daily at 7 PM Hong Kong time"
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  # 7 PM Hong Kong time = 11 AM UTC (HKT is UTC+8, no DST), Monday to Friday only
+  schedule_expression = "cron(0 11 ? * MON-FRI *)"
+
+  state = "ENABLED"
+
+  target {
+    arn      = aws_lambda_function.task_generator.arn
+    role_arn = aws_iam_role.scheduler_role.arn
+
+    input = jsonencode({
+      date   = "{{execution-time:yyyy-MM-dd}}"
+      market = "HK"
+    })
+  }
+}
+
+# EventBridge Scheduler for Shanghai (SHG) market at 7 PM China time
+resource "aws_scheduler_schedule" "shg_market_trigger" {
+  name        = "${local.name_prefix}-shg-market-trigger"
+  description = "Trigger Task Generator Lambda for Shanghai (SHG) market daily at 7 PM China time"
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  # 7 PM China time = 11 AM UTC (CST is UTC+8, no DST), Monday to Friday only
+  schedule_expression = "cron(0 11 ? * MON-FRI *)"
+
+  state = "ENABLED"
+
+  target {
+    arn      = aws_lambda_function.task_generator.arn
+    role_arn = aws_iam_role.scheduler_role.arn
+
+    input = jsonencode({
+      date   = "{{execution-time:yyyy-MM-dd}}"
+      market = "SHG"
+    })
+  }
+}
+
+# EventBridge Scheduler for Shenzhen (SHE) market at 7 PM China time
+resource "aws_scheduler_schedule" "she_market_trigger" {
+  name        = "${local.name_prefix}-she-market-trigger"
+  description = "Trigger Task Generator Lambda for Shenzhen (SHE) market daily at 7 PM China time"
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  # 7 PM China time = 11 AM UTC (CST is UTC+8, no DST), Monday to Friday only
+  schedule_expression = "cron(0 11 ? * MON-FRI *)"
+
+  state = "ENABLED"
+
+  target {
+    arn      = aws_lambda_function.task_generator.arn
+    role_arn = aws_iam_role.scheduler_role.arn
+
+    input = jsonencode({
+      date   = "{{execution-time:yyyy-MM-dd}}"
+      market = "SHE"
+    })
+  }
+}
+
 # EventBridge Scheduler for X Poster at 9 PM New York time Mon-Fri
 resource "aws_scheduler_schedule" "x_poster_trigger" {
   name        = "${local.name_prefix}-x-poster-trigger"

@@ -28,82 +28,94 @@ export class ApiService {
    * Fetch list of golden cross stocks for a market
    */
   getGoldenCrosses(market: string, limit?: number, offset?: number): Observable<GoldenCrossResponse> {
-      let url = `${this.baseUrl}/golden-crosses?market=${market}`;
-      const params: string[] = [];
+      const fetchOne = (marketCode?: string): Observable<GoldenCrossResponse> => {
+        let url = `${this.baseUrl}/golden-crosses?market=${marketCode}`;
+        const params: string[] = [];
 
-      if (limit) {
-        params.push(`limit=${limit}`);
-      }
-      if (offset) {
-        params.push(`offset=${offset}`);
-      }
+        if (limit) {
+          params.push(`limit=${limit}`);
+        }
+        if (offset) {
+          params.push(`offset=${offset}`);
+        }
 
-      if (params.length > 0) {
-        url += `&${params.join('&')}`;
-      }
+        if (params.length > 0) {
+          url += `&${params.join('&')}`;
+        }
 
-      return this.http.get<GoldenCrossResponse>(url).pipe(
-        retry(2),
-        catchError(this.handleError)
-      );
+        return this.http.get<GoldenCrossResponse>(url).pipe(
+          retry(2),
+          catchError(this.handleError)
+        );
+      };
+
+      return this.withMarketExpansion(market, fetchOne);
     }
 
   /**
    * Fetch list of all-time high stocks for a market
    */
   getATHStocks(market?: string, days?: number, limit?: number, offset?: number): Observable<ATHResponse> {
-      let url = `${this.baseUrl}/ath`;
-      const params: string[] = [];
+      const fetchOne = (marketCode?: string): Observable<ATHResponse> => {
+        let url = `${this.baseUrl}/ath`;
+        const params: string[] = [];
 
-      if (market) {
-        params.push(`market=${market}`);
-      }
-      if (days) {
-        params.push(`days=${days}`);
-      }
-      if (limit) {
-        params.push(`limit=${limit}`);
-      }
-      if (offset) {
-        params.push(`offset=${offset}`);
-      }
+        if (marketCode) {
+          params.push(`market=${marketCode}`);
+        }
+        if (days) {
+          params.push(`days=${days}`);
+        }
+        if (limit) {
+          params.push(`limit=${limit}`);
+        }
+        if (offset) {
+          params.push(`offset=${offset}`);
+        }
 
-      // Add aggressive cache-busting parameters
-      params.push(`_t=${Date.now()}`);
-      params.push(`_r=${Math.random().toString(36).substring(7)}`);
+        // Add aggressive cache-busting parameters
+        params.push(`_t=${Date.now()}`);
+        params.push(`_r=${Math.random().toString(36).substring(7)}`);
 
-      if (params.length > 0) {
-        url += `?${params.join('&')}`;
-      }
+        if (params.length > 0) {
+          url += `?${params.join('&')}`;
+        }
 
-      return this.http.get<ATHResponse>(url).pipe(
-        retry(2),
-        catchError(this.handleError)
-      );
+        return this.http.get<ATHResponse>(url).pipe(
+          retry(2),
+          catchError(this.handleError)
+        );
+      };
+
+      return this.withMarketExpansion(market, fetchOne);
     }
 
   /**
    * Fetch list of death cross stocks for a market
    */
   getDeathCrosses(market: string, limit?: number, offset?: number): Observable<GoldenCrossResponse> {
-      let url = `${this.baseUrl}/death-crosses?market=${market}`;
-      const params: string[] = [];
+      const fetchOne = (marketCode?: string): Observable<GoldenCrossResponse> => {
+        let url = `${this.baseUrl}/death-crosses?market=${marketCode}`;
+        const params: string[] = [];
 
-      if (limit) {
-        params.push(`limit=${limit}`);
-      }
-      if (offset) {
-        params.push(`offset=${offset}`);
-      }
+        if (limit) {
+          params.push(`limit=${limit}`);
+        }
+        if (offset) {
+          params.push(`offset=${offset}`);
+        }
 
-      if (params.length > 0) {
-        url += `&${params.join('&')}`;
-      }
+        if (params.length > 0) {
+          url += `&${params.join('&')}`;
+        }
 
-      return this.http.get<GoldenCrossResponse>(url).pipe(
-        retry(2),
-        catchError(this.handleError)
-      );
+        return this.http.get<GoldenCrossResponse>(url).pipe(
+          retry(2),
+          catchError(this.handleError)
+        );
+      };
+
+      return this.withMarketExpansion(market, fetchOne);
     }
 
   /**
@@ -122,19 +134,50 @@ export class ApiService {
     }
 
   getNearATHStocks(market?: string, limit?: number, offset?: number): Observable<NearATHResponse> {
-    let url = `${this.baseUrl}/near-ath`;
-    const params: string[] = [];
+    const fetchOne = (marketCode?: string): Observable<NearATHResponse> => {
+      let url = `${this.baseUrl}/near-ath`;
+      const params: string[] = [];
 
-    if (market) params.push(`market=${market}`);
-    if (limit) params.push(`limit=${limit}`);
-    if (offset) params.push(`offset=${offset}`);
-    params.push(`_t=${Date.now()}`);
+      if (marketCode) params.push(`market=${marketCode}`);
+      if (limit) params.push(`limit=${limit}`);
+      if (offset) params.push(`offset=${offset}`);
+      params.push(`_t=${Date.now()}`);
 
-    if (params.length > 0) url += `?${params.join('&')}`;
+      if (params.length > 0) url += `?${params.join('&')}`;
 
-    return this.http.get<NearATHResponse>(url).pipe(
-      retry(2),
-      catchError(this.handleError)
+      return this.http.get<NearATHResponse>(url).pipe(
+        retry(2),
+        catchError(this.handleError)
+      );
+    };
+
+    return this.withMarketExpansion(market, fetchOne);
+  }
+
+  /**
+   * Some UI market options are a single virtual code that fans out to several
+   * real backend market codes (e.g. "CH" covers Shanghai + Shenzhen, since
+   * EODHD/DynamoDB track them as separate exchanges "SHG"/"SHE"). Callers
+   * pass one market string; this expands it, fires one request per real
+   * code in parallel, and merges the `data` arrays back into a single
+   * response so the rest of the app never needs to know about the split.
+   */
+  private readonly VIRTUAL_MARKETS: Record<string, string[]> = {
+    CH: ['SHG', 'SHE'],
+  };
+
+  private withMarketExpansion<T extends { data: any[] }>(
+    market: string | undefined,
+    fetchOne: (marketCode?: string) => Observable<T>
+  ): Observable<T> {
+    const realCodes = market ? this.VIRTUAL_MARKETS[market] : undefined;
+
+    if (!realCodes) {
+      return fetchOne(market);
+    }
+
+    return forkJoin(realCodes.map(code => fetchOne(code))).pipe(
+      map(responses => ({ data: responses.flatMap(r => r.data) } as T))
     );
   }
 
