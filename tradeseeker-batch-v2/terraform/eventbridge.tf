@@ -148,6 +148,56 @@ resource "aws_scheduler_schedule" "she_market_trigger" {
   }
 }
 
+# EventBridge Scheduler for Korea (KO) market at 7 PM Korea time
+resource "aws_scheduler_schedule" "ko_market_trigger" {
+  name        = "${local.name_prefix}-ko-market-trigger"
+  description = "Trigger Task Generator Lambda for Korea (KO) market daily at 7 PM Korea time"
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  # 7 PM Korea time = 10 AM UTC (KST is UTC+9, no DST), Monday to Friday only
+  schedule_expression = "cron(0 10 ? * MON-FRI *)"
+
+  state = "ENABLED"
+
+  target {
+    arn      = aws_lambda_function.task_generator.arn
+    role_arn = aws_iam_role.scheduler_role.arn
+
+    input = jsonencode({
+      date   = "{{execution-time:yyyy-MM-dd}}"
+      market = "KO"
+    })
+  }
+}
+
+# EventBridge Scheduler for Taiwan (TW) market at 7 PM Taiwan time
+resource "aws_scheduler_schedule" "tw_market_trigger" {
+  name        = "${local.name_prefix}-tw-market-trigger"
+  description = "Trigger Task Generator Lambda for Taiwan (TW) market daily at 7 PM Taiwan time"
+
+  flexible_time_window {
+    mode = "OFF"
+  }
+
+  # 7 PM Taiwan time = 11 AM UTC (Taiwan is UTC+8, no DST), Monday to Friday only
+  schedule_expression = "cron(0 11 ? * MON-FRI *)"
+
+  state = "ENABLED"
+
+  target {
+    arn      = aws_lambda_function.task_generator.arn
+    role_arn = aws_iam_role.scheduler_role.arn
+
+    input = jsonencode({
+      date   = "{{execution-time:yyyy-MM-dd}}"
+      market = "TW"
+    })
+  }
+}
+
 # EventBridge Scheduler for X Poster at 9 PM New York time Mon-Fri
 resource "aws_scheduler_schedule" "x_poster_trigger" {
   name        = "${local.name_prefix}-x-poster-trigger"

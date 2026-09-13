@@ -23,14 +23,16 @@ export class AthComponent implements OnInit, OnDestroy {
   isLoading = false;
   
   // Market filter
-  selectedMarket = 'US';
+  selectedMarket = 'BK';
   // 'CH' is a virtual code covering both Chinese exchanges (Shanghai + Shenzhen) —
   // ApiService.withMarketExpansion() fans it out to the real SHG/SHE market codes.
   markets = [
-    { value: 'US', label: 'US Stocks' },
     { value: 'BK', label: 'Thailand (BK)' },
+    { value: 'US', label: 'US Stocks' },
     { value: 'HK', label: 'Hong Kong (HK)' },
     { value: 'CH', label: 'China (CH)' },
+    { value: 'KO', label: 'Korea (KO)' },
+    { value: 'TW', label: 'Taiwan (TW)' },
     { value: 'CC', label: 'Crypto (CC)' }
   ];
 

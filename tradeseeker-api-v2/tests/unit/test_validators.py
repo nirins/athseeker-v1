@@ -79,7 +79,7 @@ class TestGoldenCrossParamsValidation:
     def test_invalid_market(self):
         """Test invalid market parameter."""
         validated, errors = validate_golden_cross_params({'market': 'JP'})
-        assert "market must be one of: US, BK, CC, HK, SHG, SHE" in errors
+        assert "market must be one of: US, BK, CC, HK, SHG, SHE, KO, TW" in errors
     
     def test_valid_date(self):
         """Test valid date parameter."""

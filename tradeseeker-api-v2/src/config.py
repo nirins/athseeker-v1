@@ -21,7 +21,7 @@ OPENAI_SECRET_NAME = os.environ.get('OPENAI_SECRET_NAME')
 # Market codes fed by the batch pipeline (tradeseeker-batch-v2/terraform/ssm.tf
 # "markets" list + per-market EventBridge schedules). Single source of truth
 # for validators.py — update here whenever a market is added or removed there.
-VALID_MARKET_CODES = ['US', 'BK', 'CC', 'HK', 'SHG', 'SHE']
+VALID_MARKET_CODES = ['US', 'BK', 'CC', 'HK', 'SHG', 'SHE', 'KO', 'TW']
 
 # DynamoDB Table Names
 GOLDEN_CROSSES_TABLE = os.environ.get(

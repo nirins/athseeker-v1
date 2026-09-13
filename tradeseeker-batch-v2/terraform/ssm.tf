@@ -29,6 +29,14 @@ resource "aws_ssm_parameter" "markets" {
     {
       Name = "Shenzhen Stock Exchange"
       Code = "SHE"
+    },
+    {
+      Name = "Korea Stock Exchange"
+      Code = "KO"
+    },
+    {
+      Name = "Taiwan Stock Exchange"
+      Code = "TW"
     }
     # Note: India (NSE/BSE) is not available on the current EODHD plan —
     # exchange-symbol-list returns 404 for NSE, BSE, IN, BOM, NSI. Add it

@@ -33,7 +33,7 @@ import { ErrorMessageComponent } from '../../shared/components/error-message/err
   styleUrls: ['./dashboard.component.scss']
 })
 export class DashboardComponent implements OnInit, OnDestroy {
-  selectedMarket: string = 'US';
+  selectedMarket: string = 'BK';
   selectedDisplayMode: ChartDisplayMode = 'both';
   selectedChartType: ChartType = 'candlestick';
   selectedStrategy: TradingStrategy = 'ath';
