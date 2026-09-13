@@ -176,7 +176,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
    */
   private loadStockPageWithFallback(): void {
     // For ATH/Near-ATH on load more, allSymbols is already populated — skip API call
-    if ((this.selectedStrategy === 'ath' || this.selectedStrategy === 'near-ath') && this.currentOffset > 0) {
+    if ((this.selectedStrategy === 'ath' || this.selectedStrategy === 'near-ath' || this.selectedStrategy === 'hype') && this.currentOffset > 0) {
       const startIndex = this.currentOffset;
       const endIndex = startIndex + this.PAGE_SIZE;
       const pageSymbols = this.allSymbols.slice(startIndex, endIndex);
@@ -190,7 +190,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const shouldFetchAll = (this.selectedStrategy === 'ath' || this.selectedStrategy === 'near-ath') && this.currentOffset === 0;
+    const shouldFetchAll = (this.selectedStrategy === 'ath' || this.selectedStrategy === 'near-ath' || this.selectedStrategy === 'hype') && this.currentOffset === 0;
     const requestLimit = shouldFetchAll ? 1000 : this.PAGE_SIZE;
     
     this.apiService.getStrategyStocks(this.selectedStrategy, this.selectedMarket, requestLimit, this.currentOffset)
@@ -211,7 +211,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
           const symbols = response.data.map(item => item.symbol);
           
           // Build beauty score map for ATH/near-ATH
-          if (this.selectedStrategy === 'ath' || this.selectedStrategy === 'near-ath') {
+          if (this.selectedStrategy === 'ath' || this.selectedStrategy === 'near-ath' || this.selectedStrategy === 'hype') {
             response.data.forEach((item: any) => {
               if (item.beauty_score != null) {
                 this.beautyScoreMap.set(item.symbol, item.beauty_score);
@@ -223,7 +223,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
           console.log('API Response - First 10 symbols in order:', symbols.slice(0, 10));
 
           // For ATH/Near-ATH strategy, always use client-side pagination since API doesn't support proper offset
-          if (this.selectedStrategy === 'ath' || this.selectedStrategy === 'near-ath') {
+          if (this.selectedStrategy === 'ath' || this.selectedStrategy === 'near-ath' || this.selectedStrategy === 'hype') {
             
             // Only update allSymbols on first load to avoid overwriting
             if (this.currentOffset === 0) {

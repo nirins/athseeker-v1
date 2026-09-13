@@ -12,6 +12,7 @@ from technical_analysis import calculate_ema_series, calculate_candle_metrics
 from cross_detector import CrossDetector
 from ath_detector import ATHDetector
 from near_ath_detector import NearATHDetector
+from speculative_detector import SpeculativeDetector
 from breakout_analyzer import BreakoutAnalyzer
 from storage import StorageManager
 from api_client import EODHDClient
@@ -52,6 +53,7 @@ class StockDownloader:
         self.cross_detector = CrossDetector(environment)
         self.ath_detector = ATHDetector(environment, max_daily_volatility)
         self.near_ath_detector = NearATHDetector(environment, max_daily_volatility, near_ath_threshold)
+        self.speculative_detector = SpeculativeDetector(environment)
         self.breakout_analyzer = BreakoutAnalyzer()
     
     def process_task(self, record: Dict[str, Any]):
@@ -117,10 +119,10 @@ class StockDownloader:
         filtered_data, moving_averages, candle_metrics = processed_data
 
         # Check for any detections
-        detections = self.check_all_detections(symbol_with_market, market_code, moving_averages, filtered_data)
+        detections = self.check_all_detections(symbol_with_market, market_code, moving_averages, filtered_data, candle_metrics)
 
         if detections['has_any']:
-            logger.info(f"Detections found for {symbol_with_market} - Cross: {detections['cross']}, ATH: {detections['ath']}")
+            logger.info(f"Detections found for {symbol_with_market} - Cross: {detections['cross']}, ATH: {detections['ath']}, Speculative: {detections['speculative']}")
 
             # Save to main DynamoDB table (full history)
             self.storage.save_to_dynamodb(task, filtered_data, moving_averages, candle_metrics)
@@ -268,35 +270,59 @@ class StockDownloader:
                    f"{identical_percentage:.1f}% identical days")
         return True
     
-    def check_all_detections(self, symbol_with_market: str, market_code: str, moving_averages: List[Dict], price_data: List[Dict]) -> Dict:
+    def check_all_detections(self, symbol_with_market: str, market_code: str, moving_averages: List[Dict],
+                              price_data: List[Dict], candle_metrics: Dict = None) -> Dict:
         """
         Check for all types of detections
-        
+
         Args:
             symbol_with_market: Symbol with market code
             market_code: Market code
             moving_averages: List of moving average records
             price_data: List of price records
-            
+            candle_metrics: Candle metrics (used by the speculative-activity check)
+
         Returns:
             Dict with detection results
         """
         has_cross = self.check_cross_signals(symbol_with_market, market_code, moving_averages)
         has_ath = self.check_ath_detection(symbol_with_market, market_code, price_data)
         has_near_ath = self.check_near_ath_detection(symbol_with_market, market_code, price_data, moving_averages)
-        
+        has_speculative = self.check_speculative_detection(symbol_with_market, market_code, price_data, candle_metrics)
+
         return {
             'cross': has_cross,
             'ath': has_ath,
             'near_ath': has_near_ath,
-            'has_any': has_cross or has_ath or has_near_ath
+            'speculative': has_speculative,
+            'has_any': has_cross or has_ath or has_near_ath or has_speculative
         }
-    
-    def save_detections(self, symbol_with_market: str, market_code: str, moving_averages: List[Dict], 
+
+    def check_speculative_detection(self, symbol_with_market: str, market_code: str, price_data: List[Dict],
+                                     candle_metrics: Dict = None) -> bool:
+        """
+        Check if there is speculative-activity detection (without saving)
+
+        Args:
+            symbol_with_market: Symbol with market code
+            market_code: Market code
+            price_data: List of price records
+            candle_metrics: Candle metrics, used for the red-candle signal
+
+        Returns:
+            bool: True if speculative activity detected, False otherwise
+        """
+        speculative_detection = self.speculative_detector.check_speculative_detection(
+            symbol_with_market, market_code, price_data, candle_metrics
+        )
+
+        return speculative_detection is not None
+
+    def save_detections(self, symbol_with_market: str, market_code: str, moving_averages: List[Dict],
                        price_data: List[Dict], candle_metrics: Dict, detections: Dict):
         """
         Save specific detection results to their respective tables
-        
+
         Args:
             symbol_with_market: Symbol with market code
             market_code: Market code
@@ -307,12 +333,15 @@ class StockDownloader:
         """
         if detections['cross']:
             self.handle_cross_signals(symbol_with_market, market_code, moving_averages, candle_metrics)
-        
+
         if detections['ath']:
             self.handle_ath_detection(symbol_with_market, market_code, price_data, moving_averages)
-        
+
         if detections['near_ath']:
             self.handle_near_ath_detection(symbol_with_market, market_code, price_data, moving_averages)
+
+        if detections['speculative']:
+            self.handle_speculative_detection(symbol_with_market, market_code, price_data, candle_metrics)
     
     def filter_data_by_retention(self, sorted_data: List[Dict], market_code: str) -> List[Dict]:
         """
@@ -511,7 +540,29 @@ class StockDownloader:
             
             logger.info(f"Near ATH detected: {symbol_with_market} - ${near_ath_detection['current_price']} ({near_ath_detection['distance_from_ath_percentage']}% from ATH ${near_ath_detection['ath_price']}) - Beauty: {beauty_analysis.get('beauty_score', 'N/A')} ({beauty_analysis.get('grade', 'N/A')})")
             self.storage.save_near_ath_detection(near_ath_detection)
-    
+
+    def handle_speculative_detection(self, symbol_with_market: str, market_code: str, price_data: List[Dict],
+                                      candle_metrics: Dict = None):
+        """
+        Handle speculative-activity detection and saving
+
+        Args:
+            symbol_with_market: Symbol with market code
+            market_code: Market code
+            price_data: List of price records
+            candle_metrics: Candle metrics, used for the red-candle signal
+        """
+        speculative_detection = self.speculative_detector.check_speculative_detection(
+            symbol_with_market, market_code, price_data, candle_metrics
+        )
+
+        if speculative_detection:
+            logger.info(
+                f"Speculative activity detected: {symbol_with_market} - "
+                f"Score: {speculative_detection['speculative_score']} - Reasons: {speculative_detection['reasons']}"
+            )
+            self.storage.save_speculative_detection(speculative_detection)
+
     def _merge_price_and_ema_data(self, price_data: List[Dict], moving_averages: List[Dict] = None) -> List[Dict]:
         """
         Merge price data with EMA data for beauty score calculation

@@ -318,6 +318,73 @@ def validate_near_ath_stocks_params(params: Dict[str, Any]) -> Tuple[Dict[str, A
     return validated, errors
 
 
+def validate_speculative_stocks_params(params: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
+    """
+    Validate speculative stocks query parameters.
+
+    Args:
+        params: Query parameters dict
+
+    Returns:
+        Tuple of (validated_params, errors)
+    """
+    validated = {}
+    errors = []
+
+    # Validate min_score (default: 0, range 0-100)
+    if 'min_score' in params:
+        try:
+            min_score = float(params['min_score'])
+            if min_score < 0:
+                errors.append("min_score must be >= 0")
+            elif min_score > 100:
+                errors.append("min_score cannot exceed 100")
+            else:
+                validated['min_score'] = min_score
+        except (ValueError, TypeError):
+            errors.append("min_score must be a valid number")
+    else:
+        validated['min_score'] = 0.0
+
+    # Validate market (optional)
+    if 'market' in params:
+        market = params['market'].upper()
+        if market not in VALID_MARKET_CODES:
+            errors.append(f"market must be one of: {', '.join(VALID_MARKET_CODES)}")
+        else:
+            validated['market'] = market
+
+    # Validate limit (default: 50, max: 1000)
+    if 'limit' in params:
+        try:
+            limit = int(params['limit'])
+            if limit <= 0:
+                errors.append("limit must be a positive integer")
+            elif limit > 1000:
+                errors.append("limit cannot exceed 1000")
+            else:
+                validated['limit'] = limit
+        except (ValueError, TypeError):
+            errors.append("limit must be a valid integer")
+    else:
+        validated['limit'] = 50
+
+    # Validate offset (default: 0)
+    if 'offset' in params:
+        try:
+            offset = int(params['offset'])
+            if offset < 0:
+                errors.append("offset must be >= 0")
+            else:
+                validated['offset'] = offset
+        except (ValueError, TypeError):
+            errors.append("offset must be a valid integer")
+    else:
+        validated['offset'] = 0
+
+    return validated, errors
+
+
 def validate_death_cross_params(params: Dict[str, Any]) -> Tuple[Dict[str, Any], List[str]]:
     """
     Validate death cross query parameters.

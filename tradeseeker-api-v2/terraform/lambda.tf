@@ -18,6 +18,7 @@ resource "aws_lambda_function" "tradeseeker_api" {
       STOCK_PRICES_LITE_TABLE      = var.stock_prices_lite_table
       ATH_STOCKS_TABLE             = var.ath_stocks_table
       NEAR_ATH_STOCKS_TABLE        = var.near_ath_stocks_table
+      SPECULATIVE_STOCKS_TABLE     = var.speculative_stocks_table
       CROSS_DATE_INDEX             = var.cross_date_index
       MARKET_CODE_CROSS_DATE_INDEX = var.market_code_cross_date_index
       EODHD_SECRET_NAME            = var.eodhd_secret_name

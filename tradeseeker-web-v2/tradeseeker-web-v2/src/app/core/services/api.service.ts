@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, forkJoin, from, throwError, of } from 'rxjs';
 import { map, catchError, retry, mergeMap, toArray, filter, tap } from 'rxjs/operators';
-import { GoldenCrossResponse, StockData, StockDataResponse, RawStockData, MovingAveragePoint, ATHResponse, NearATHResponse } from '../models';
+import { GoldenCrossResponse, StockData, StockDataResponse, RawStockData, MovingAveragePoint, ATHResponse, NearATHResponse, SpeculativeResponse } from '../models';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -121,13 +121,15 @@ export class ApiService {
   /**
    * Fetch stocks based on strategy (golden cross, death cross, or ath)
    */
-  getStrategyStocks(strategy: 'golden-cross' | 'death-cross' | 'ath' | 'near-ath', market: string, limit?: number, offset?: number): Observable<GoldenCrossResponse | ATHResponse | NearATHResponse> {
+  getStrategyStocks(strategy: 'golden-cross' | 'death-cross' | 'ath' | 'near-ath' | 'hype', market: string, limit?: number, offset?: number): Observable<GoldenCrossResponse | ATHResponse | NearATHResponse | SpeculativeResponse> {
       if (strategy === 'death-cross') {
         return this.getDeathCrosses(market, limit, offset);
       } else if (strategy === 'ath') {
         return this.getATHStocks(market, undefined, limit, offset);
       } else if (strategy === 'near-ath') {
         return this.getNearATHStocks(market, limit, offset);
+      } else if (strategy === 'hype') {
+        return this.getSpeculativeStocks(market, undefined, limit, offset);
       } else {
         return this.getGoldenCrosses(market, limit, offset);
       }
@@ -146,6 +148,32 @@ export class ApiService {
       if (params.length > 0) url += `?${params.join('&')}`;
 
       return this.http.get<NearATHResponse>(url).pipe(
+        retry(2),
+        catchError(this.handleError)
+      );
+    };
+
+    return this.withMarketExpansion(market, fetchOne);
+  }
+
+  /**
+   * Fetch list of speculative-activity stocks for a market (volume spikes,
+   * violent swings, severe red candles, parabolic run-ups)
+   */
+  getSpeculativeStocks(market?: string, minScore?: number, limit?: number, offset?: number): Observable<SpeculativeResponse> {
+    const fetchOne = (marketCode?: string): Observable<SpeculativeResponse> => {
+      let url = `${this.baseUrl}/speculative`;
+      const params: string[] = [];
+
+      if (marketCode) params.push(`market=${marketCode}`);
+      if (minScore) params.push(`min_score=${minScore}`);
+      if (limit) params.push(`limit=${limit}`);
+      if (offset) params.push(`offset=${offset}`);
+      params.push(`_t=${Date.now()}`);
+
+      if (params.length > 0) url += `?${params.join('&')}`;
+
+      return this.http.get<SpeculativeResponse>(url).pipe(
         retry(2),
         catchError(this.handleError)
       );

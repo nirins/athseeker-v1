@@ -8,6 +8,7 @@ import json
 from hypothesis import given, strategies as st, settings, assume
 
 from src.validators import validate_golden_cross_params, validate_stock_price_params
+from src.config import VALID_MARKET_CODES
 
 
 # **Validates: Requirements 2.2**
@@ -150,14 +151,14 @@ def test_property_valid_parameters_pass(min_green, max_red_candle, days):
 @settings(max_examples=100)
 def test_property_market_validation(market):
     """
-    Property: Market parameter should only accept US, BK, or CC.
-    
+    Property: Market parameter should only accept a code in VALID_MARKET_CODES.
+
     **Validates: Requirements 3.3**
     """
     params = {'market': market}
     validated, errors = validate_golden_cross_params(params)
-    
-    if market in ['US', 'BK', 'CC']:
+
+    if market in VALID_MARKET_CODES:
         assert not any('market' in e for e in errors), \
             f"Valid market {market} got error"
         assert validated.get('market') == market

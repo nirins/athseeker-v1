@@ -52,6 +52,12 @@ variable "near_ath_stocks_table" {
   default     = "ts-batch-v2-dev-near-ath"
 }
 
+variable "speculative_stocks_table" {
+  description = "DynamoDB table name for speculative stocks"
+  type        = string
+  default     = "ts-batch-v2-dev-speculative"
+}
+
 variable "cross_date_index" {
   description = "GSI name for cross_date index"
   type        = string

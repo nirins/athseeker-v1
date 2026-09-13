@@ -1,0 +1,109 @@
+<div class="speculative-container">
+  <!-- Header -->
+  <div class="speculative-header">
+    <div class="header-content">
+      <h1>Hype</h1>
+      <p class="subtitle">Stocks showing volume spikes, violent swings, or parabolic run-ups</p>
+
+      <!-- Controls -->
+      <div class="controls">
+        <!-- Market Filter -->
+        <div class="control-group">
+          <label for="market-select">Market:</label>
+          <select
+            id="market-select"
+            [(ngModel)]="selectedMarket"
+            (change)="onMarketChange()"
+            class="market-select">
+            <option *ngFor="let market of markets" [value]="market.value">
+              {{ market.label }}
+            </option>
+          </select>
+        </div>
+
+        <!-- Refresh Button -->
+        <button
+          class="refresh-btn"
+          (click)="loadSpeculativeStocks()"
+          [disabled]="isLoading">
+          <span class="btn-icon">{{ isLoading ? '⏳' : '🔄' }}</span>
+          {{ isLoading ? 'Loading...' : 'Refresh' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results Summary -->
+  <div class="results-summary" *ngIf="!isLoading">
+    <div class="summary-stats">
+      <div class="stat-item">
+        <span class="stat-number">{{ speculativeStocks.length }}</span>
+        <span class="stat-label">Flagged Stocks</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number">{{ selectedMarket }}</span>
+        <span class="stat-label">Market</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="isLoading">
+    <div class="loading-spinner"></div>
+    <p>Loading speculative activity...</p>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="!isLoading && speculativeStocks.length === 0">
+    <div class="empty-icon">📊</div>
+    <h3>No Speculative Activity Found</h3>
+    <p>No stocks are showing speculative signals in the selected market recently.</p>
+    <button class="retry-btn" (click)="loadSpeculativeStocks()">Try Again</button>
+  </div>
+
+  <!-- Speculative Stocks Table -->
+  <div class="speculative-table-container" *ngIf="!isLoading && speculativeStocks.length > 0">
+    <div class="table-wrapper">
+      <table class="speculative-table">
+        <thead>
+          <tr>
+            <th>Symbol</th>
+            <th>Detection Date</th>
+            <th>Price</th>
+            <th>Score</th>
+            <th>Reasons</th>
+            <th>Volume Spike</th>
+            <th>Volatility</th>
+            <th>Red Candle</th>
+            <th>10d Run-up</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let stock of speculativeStocks; trackBy: trackBySymbol" class="stock-row">
+            <td class="symbol-cell">
+              <a [routerLink]="['/stock', stock.symbol]" class="symbol-link">
+                {{ stock.symbol }}
+              </a>
+            </td>
+            <td class="date-cell">{{ formatDate(stock.detection_date) }}</td>
+            <td class="price-cell">{{ formatCurrency(stock.current_price) }}</td>
+            <td class="score-cell">
+              <span class="score-badge" [class.score-high]="stock.speculative_score >= 75">
+                {{ stock.speculative_score }}
+              </span>
+            </td>
+            <td class="reasons-cell">
+              <span class="reason-badge" *ngFor="let reason of stock.reasons">
+                {{ formatReason(reason) }}
+              </span>
+            </td>
+            <td class="ratio-cell">{{ formatRatio(stock.volume_spike_ratio) }}</td>
+            <td class="ratio-cell">{{ formatPercentage(stock.recent_volatility_pct) }}</td>
+            <td class="gain-cell negative">{{ formatPercentage(stock.max_red_candle_30d_pct) }}</td>
+            <td class="gain-cell positive">{{ formatPercentage(stock.cumulative_return_10d_pct) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

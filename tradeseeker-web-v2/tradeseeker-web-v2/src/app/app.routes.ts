@@ -20,6 +20,11 @@ export const routes: Routes = [
     canActivate: [AuthGuard]
   },
   {
+    path: 'hype',
+    loadComponent: () => import('./features/speculative/speculative.component').then(m => m.SpeculativeComponent),
+    canActivate: [AuthGuard]
+  },
+  {
     path: 'watchlist',
     loadComponent: () => import('./features/watchlist/watchlist.component').then(m => m.WatchlistComponent),
     canActivate: [AuthGuard]

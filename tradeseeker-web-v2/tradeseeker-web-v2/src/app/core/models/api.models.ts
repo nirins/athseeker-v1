@@ -74,6 +74,31 @@ export interface NearATHStock {
 }
 
 /**
+ * Response from speculative stocks API endpoint
+ */
+export interface SpeculativeResponse {
+  data: SpeculativeStock[];
+}
+
+/**
+ * Individual speculative-activity stock data
+ */
+export interface SpeculativeStock {
+  symbol: string;
+  detection_date: string;
+  current_price: number;
+  speculative_score: number;
+  volume_spike_ratio: number;
+  recent_volatility_pct: number;
+  cumulative_return_10d_pct: number;
+  max_red_candle_30d_pct: number | null;
+  reasons: string[];
+  market_code: string;
+  detected_at: string;
+  ttl: number;
+}
+
+/**
  * Response wrapper for stock data API endpoint
  */
 export interface StockDataResponse {

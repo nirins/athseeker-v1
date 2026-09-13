@@ -234,3 +234,30 @@ class StorageManager:
         except Exception as e:
             logger.error(f"Error saving Near ATH detection for {detection['symbol']}: {str(e)}")
             # Don't raise - this is not critical
+
+    def save_speculative_detection(self, detection: Dict):
+        """
+        Save speculative-activity detection record to DynamoDB (one record per symbol, overwrites existing)
+
+        Args:
+            detection: Speculative detection record dictionary
+        """
+        try:
+            table_name = f"ts-batch-v2-{self.environment}-speculative"
+            table = self.dynamodb.Table(table_name)
+
+            logger.info(f"Saving speculative detection with fields: {list(detection.keys())}")
+
+            # Convert float values to Decimal for DynamoDB
+            detection_record = {
+                k: Decimal(str(v)) if isinstance(v, float) else v
+                for k, v in detection.items()
+            }
+
+            # Save speculative record (will overwrite existing record with same symbol)
+            table.put_item(Item=detection_record)
+            logger.info(f"Speculative detection saved: {detection['symbol']} - score {detection['speculative_score']} ({detection['reasons']})")
+
+        except Exception as e:
+            logger.error(f"Error saving speculative detection for {detection['symbol']}: {str(e)}")
+            # Don't raise - this is not critical

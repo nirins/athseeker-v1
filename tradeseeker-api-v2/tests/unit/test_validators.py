@@ -5,7 +5,8 @@ from src.validators import (
     validate_date_format,
     validate_golden_cross_params,
     validate_stock_price_params,
-    validate_openai_summary_params
+    validate_openai_summary_params,
+    validate_speculative_stocks_params
 )
 
 
@@ -114,6 +115,59 @@ class TestGoldenCrossParamsValidation:
         assert any('min_green' in e for e in errors)
         assert any('market' in e for e in errors)
         assert any('days' in e for e in errors)
+
+
+class TestValidateSpeculativeStocksParams:
+    """Tests for speculative stocks parameter validation."""
+
+    def test_default_values(self):
+        """Test defaults are applied when no parameters provided."""
+        validated, errors = validate_speculative_stocks_params({})
+        assert errors == []
+        assert validated['min_score'] == 0.0
+        assert validated['limit'] == 50
+        assert validated['offset'] == 0
+        assert 'market' not in validated
+
+    def test_valid_market(self):
+        """Test a valid market code is accepted and uppercased."""
+        validated, errors = validate_speculative_stocks_params({'market': 'hk'})
+        assert errors == []
+        assert validated['market'] == 'HK'
+
+    def test_invalid_market(self):
+        """Test an unsupported market code is rejected."""
+        validated, errors = validate_speculative_stocks_params({'market': 'JP'})
+        assert any('market must be one of' in e for e in errors)
+
+    def test_min_score_range(self):
+        """Test min_score bounds are enforced (0-100)."""
+        validated, errors = validate_speculative_stocks_params({'min_score': '50'})
+        assert errors == []
+        assert validated['min_score'] == 50.0
+
+        _, errors_low = validate_speculative_stocks_params({'min_score': '-1'})
+        assert any('min_score' in e for e in errors_low)
+
+        _, errors_high = validate_speculative_stocks_params({'min_score': '101'})
+        assert any('min_score' in e for e in errors_high)
+
+    def test_limit_bounds(self):
+        """Test limit must be a positive integer, capped at 1000."""
+        _, errors_zero = validate_speculative_stocks_params({'limit': '0'})
+        assert any('limit' in e for e in errors_zero)
+
+        _, errors_over = validate_speculative_stocks_params({'limit': '1001'})
+        assert any('limit' in e for e in errors_over)
+
+    def test_multiple_errors_accumulated(self):
+        """Test multiple validation errors are accumulated."""
+        validated, errors = validate_speculative_stocks_params({
+            'market': 'JP',
+            'min_score': '150',
+            'limit': '-5'
+        })
+        assert len(errors) == 3
 
 
 class TestStockPriceParamsValidation:

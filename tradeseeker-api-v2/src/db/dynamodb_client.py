@@ -55,7 +55,11 @@ class DynamoDBClient:
             'NEAR_ATH_STOCKS_TABLE',
             'ts-batch-v2-dev-near-ath'
         )
-        
+        self.speculative_stocks_table_name = os.environ.get(
+            'SPECULATIVE_STOCKS_TABLE',
+            'ts-batch-v2-dev-speculative'
+        )
+
         # GSI names from environment variables
         self.cross_date_index = os.environ.get('CROSS_DATE_INDEX', 'cross_date-index')
         self.market_cross_date_index = os.environ.get(
@@ -70,7 +74,8 @@ class DynamoDBClient:
         self.stock_prices_lite_table = self.dynamodb.Table(self.stock_prices_lite_table_name)
         self.ath_stocks_table = self.dynamodb.Table(self.ath_stocks_table_name)
         self.near_ath_stocks_table = self.dynamodb.Table(self.near_ath_stocks_table_name)
-        
+        self.speculative_stocks_table = self.dynamodb.Table(self.speculative_stocks_table_name)
+
         logger.info(f"DynamoDB client initialized for region {self.region}")
     
     def query_golden_crosses_by_date(
@@ -831,6 +836,108 @@ class DynamoDBClient:
             logger.info(f"Scanned {len(items)} Near ATH stock records in {execution_time:.3f}s")
             return items
             
+        except ClientError as e:
+            execution_time = time.time() - start_time
+            logger.error(
+                f"DynamoDB scan failed after {execution_time:.3f}s: "
+                f"{e.response['Error']['Code']} - {e.response['Error']['Message']}"
+            )
+            raise
+
+    def query_speculative_stocks_by_score(
+        self,
+        market_code: str,
+        limit: int = 50
+    ) -> list[dict]:
+        """
+        Query speculative stocks by speculative_score (highest first) for a specific market.
+
+        Uses speculative_score-index GSI for efficient querying ordered by score.
+
+        Args:
+            market_code: Market code (US, BK, CC, ...)
+            limit: Maximum number of results to return
+
+        Returns:
+            List of speculative stock records ordered by score (highest first)
+
+        Raises:
+            ClientError: If DynamoDB operation fails
+        """
+        start_time = time.time()
+
+        try:
+            logger.info(f"Querying speculative stocks by score for market={market_code}, limit={limit}")
+
+            response = self.speculative_stocks_table.query(
+                IndexName='speculative_score-index',
+                KeyConditionExpression=Key('market_code').eq(market_code),
+                ScanIndexForward=False,  # Descending order (highest score first)
+                Limit=limit
+            )
+
+            items = response.get('Items', [])
+            execution_time = time.time() - start_time
+
+            logger.info(f"Found {len(items)} speculative stock records in {execution_time:.3f}s")
+            return items
+
+        except ClientError as e:
+            execution_time = time.time() - start_time
+            logger.error(
+                f"DynamoDB query failed after {execution_time:.3f}s: "
+                f"{e.response['Error']['Code']} - {e.response['Error']['Message']}"
+            )
+            raise
+
+    def scan_speculative_stocks(self, market_code: Optional[str] = None, limit: int = 50, offset: int = 0) -> list[dict]:
+        """
+        Scan speculative stocks table with optional market filter.
+
+        WARNING: This is a table scan operation which is less efficient than queries.
+        Use query methods when possible.
+
+        Args:
+            market_code: Optional market filter (US, BK, CC, ...)
+            limit: Maximum number of results to return
+            offset: Number of results to skip
+
+        Returns:
+            List of speculative stock records
+
+        Raises:
+            ClientError: If DynamoDB operation fails
+        """
+        start_time = time.time()
+
+        try:
+            scan_kwargs = {
+                'Limit': limit + offset  # Get extra items to handle offset
+            }
+
+            if market_code:
+                logger.info(f"Scanning speculative stocks with market filter: {market_code}")
+                scan_kwargs['FilterExpression'] = Attr('market_code').eq(market_code)
+            else:
+                logger.info("Scanning all speculative stocks (no market filter)")
+
+            response = self.speculative_stocks_table.scan(**scan_kwargs)
+
+            items = response.get('Items', [])
+
+            # Handle pagination manually for offset
+            if offset > 0:
+                items = items[offset:]
+
+            # Limit results
+            if len(items) > limit:
+                items = items[:limit]
+
+            execution_time = time.time() - start_time
+
+            logger.info(f"Scanned {len(items)} speculative stock records in {execution_time:.3f}s")
+            return items
+
         except ClientError as e:
             execution_time = time.time() - start_time
             logger.error(

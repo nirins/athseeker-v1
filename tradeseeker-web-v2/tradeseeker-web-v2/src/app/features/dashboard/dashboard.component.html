@@ -41,6 +41,7 @@
           {{ isLabelMode ? 'Exit' : 'Label' }}
         </button>
 
+        <a routerLink="/hype" class="watchlist-nav-btn" *ngIf="isAuthenticated && !isNative">Hype</a>
         <a routerLink="/watchlist" class="watchlist-nav-btn" *ngIf="isAuthenticated && !isNative">Watchlist</a>
         <button class="watchlist-nav-btn" *ngIf="isAuthenticated && !isNative" (click)="signOut()">Sign out</button>
         <a routerLink="/login" class="watchlist-nav-btn" *ngIf="!isAuthenticated && !isNative">Sign in</a>
@@ -50,7 +51,7 @@
 
   <div *ngIf="isLoading && stockDataArray.length === 0" class="loading-container">
     <app-loading-spinner></app-loading-spinner>
-    <p>Loading {{ selectedStrategy === 'golden-cross' ? 'golden cross' : selectedStrategy === 'death-cross' ? 'death cross' : selectedStrategy === 'near-ath' ? 'near ATH' : 'all-time high' }} data...</p>
+    <p>Loading {{ selectedStrategy === 'golden-cross' ? 'golden cross' : selectedStrategy === 'death-cross' ? 'death cross' : selectedStrategy === 'near-ath' ? 'near ATH' : selectedStrategy === 'hype' ? 'hype' : 'all-time high' }} data...</p>
   </div>
 
   <div *ngIf="error" class="error-container">
@@ -68,7 +69,7 @@
   </div>
 
   <div *ngIf="!isLoading && !error && stockDataArray.length === 0 && allSymbols.length === 0" class="empty-state">
-    <p>No {{ selectedStrategy === 'golden-cross' ? 'golden cross' : selectedStrategy === 'death-cross' ? 'death cross' : selectedStrategy === 'near-ath' ? 'near ATH' : 'all-time high' }} signals found for {{ selectedMarket }} market.</p>
+    <p>No {{ selectedStrategy === 'golden-cross' ? 'golden cross' : selectedStrategy === 'death-cross' ? 'death cross' : selectedStrategy === 'near-ath' ? 'near ATH' : selectedStrategy === 'hype' ? 'hype' : 'all-time high' }} signals found for {{ selectedMarket }} market.</p>
     <button (click)="onRefresh()" class="refresh-button">Refresh</button>
   </div>
 

@@ -45,7 +45,9 @@ resource "aws_iam_policy" "dynamodb_read" {
           "arn:aws:dynamodb:${var.aws_region}:*:table/${var.ath_stocks_table}",
           "arn:aws:dynamodb:${var.aws_region}:*:table/${var.ath_stocks_table}/index/*",
           "arn:aws:dynamodb:${var.aws_region}:*:table/${var.near_ath_stocks_table}",
-          "arn:aws:dynamodb:${var.aws_region}:*:table/${var.near_ath_stocks_table}/index/*"
+          "arn:aws:dynamodb:${var.aws_region}:*:table/${var.near_ath_stocks_table}/index/*",
+          "arn:aws:dynamodb:${var.aws_region}:*:table/${var.speculative_stocks_table}",
+          "arn:aws:dynamodb:${var.aws_region}:*:table/${var.speculative_stocks_table}/index/*"
         ]
       }
     ]
