@@ -14,7 +14,7 @@ export class MarketSelectorComponent {
 
   // 'CH' is a virtual code covering both Chinese exchanges (Shanghai + Shenzhen) —
   // ApiService.withMarketExpansion() fans it out to the real SHG/SHE market codes.
-  markets = ['US', 'BK', 'CC', 'HK', 'CH'];
+  markets = ['US', 'BK', 'HK', 'CH', 'CC'];
 
   onMarketSelect(market: string): void {
     if (market !== this.selectedMarket) {

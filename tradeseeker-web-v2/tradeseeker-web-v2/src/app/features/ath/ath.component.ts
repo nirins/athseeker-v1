@@ -29,9 +29,9 @@ export class AthComponent implements OnInit, OnDestroy {
   markets = [
     { value: 'US', label: 'US Stocks' },
     { value: 'BK', label: 'Thailand (BK)' },
-    { value: 'CC', label: 'Crypto (CC)' },
     { value: 'HK', label: 'Hong Kong (HK)' },
-    { value: 'CH', label: 'China (CH)' }
+    { value: 'CH', label: 'China (CH)' },
+    { value: 'CC', label: 'Crypto (CC)' }
   ];
 
   constructor(private apiService: ApiService) {}
