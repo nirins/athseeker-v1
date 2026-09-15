@@ -28,7 +28,7 @@ class SpeculativeDetector:
         volume_spike_threshold: float = 3.0,
         volatility_threshold: float = 30.0,
         red_candle_threshold: float = -15.0,
-        run_up_threshold: float = 50.0,
+        run_up_threshold: float = 30.0,
     ):
         """
         Initialize Speculative Detector
@@ -42,7 +42,7 @@ class SpeculativeDetector:
             red_candle_threshold: max_red_candle_30d_pct at or below this counts
                 as a severe red candle (default: -15%%)
             run_up_threshold: Cumulative %% return over the trailing 10 trading
-                days that counts as a parabolic run-up (default: 50%%)
+                days that counts as a parabolic run-up (default: 30%%)
         """
         self.environment = environment
         self.volume_spike_threshold = volume_spike_threshold
