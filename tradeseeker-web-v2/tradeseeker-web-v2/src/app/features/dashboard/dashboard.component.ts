@@ -5,6 +5,7 @@ import { Subject, of } from 'rxjs';
 import { switchMap, takeUntil, catchError } from 'rxjs/operators';
 import { ApiService } from '../../core/services/api.service';
 import { WatchlistService } from '../../core/services/watchlist.service';
+import { PositionService } from '../../core/services/position.service';
 import { AuthService } from '../../core/services/auth.service';
 import { StockData, ChartDisplayMode, ChartType } from '../../core/models';
 import { MarketSelectorComponent } from './components/market-selector/market-selector.component';
@@ -71,7 +72,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     { value: 'F', label: 'F - Failed' }
   ];
 
-  constructor(private apiService: ApiService, private watchlistService: WatchlistService, private authService: AuthService, public router: Router) {}
+  constructor(private apiService: ApiService, private watchlistService: WatchlistService, private positionService: PositionService, private authService: AuthService, public router: Router) {}
 
   private touchStartY = 0;
   private readonly PULL_THRESHOLD = 80;
@@ -108,6 +109,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     // Load watchlist state so star buttons show correctly
     this.watchlistService.loadWatchlist().subscribe();
+    this.positionService.loadPositions().subscribe();
 
     // Initial data fetch
     this.fetchData();

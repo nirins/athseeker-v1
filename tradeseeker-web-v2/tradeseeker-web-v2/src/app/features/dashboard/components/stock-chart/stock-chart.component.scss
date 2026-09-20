@@ -97,7 +97,26 @@
           color: #f59e0b;
         }
       }
-      
+
+      .position-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 0.9rem;
+        color: #94a3b8;
+        padding: 0;
+        line-height: 1;
+        transition: color 0.15s ease;
+
+        &:hover {
+          color: #10b981;
+        }
+
+        &.held {
+          color: #10b981;
+        }
+      }
+
       .score-btn {
         display: flex;
         align-items: center;

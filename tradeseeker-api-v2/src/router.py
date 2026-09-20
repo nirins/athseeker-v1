@@ -20,6 +20,7 @@ from src.handlers.near_ath_stocks import handle_near_ath_stocks
 from src.handlers.speculative_stocks import handle_speculative_stocks
 from src.handlers.openai_summary import handle_openai_summary
 from src.handlers.watchlist import handle_get_watchlist, handle_add_to_watchlist, handle_remove_from_watchlist
+from src.handlers.positions import handle_get_positions, handle_add_position, handle_remove_position
 from src.formatters import error_response
 
 logger = logging.getLogger(__name__)
@@ -47,6 +48,9 @@ def route_request(
     - GET /watchlist -> watchlist_handler (get)
     - POST /watchlist -> watchlist_handler (add)
     - DELETE /watchlist -> watchlist_handler (remove)
+    - GET /positions -> positions_handler (get)
+    - POST /positions -> positions_handler (add)
+    - DELETE /positions -> positions_handler (remove)
     - POST /training-data/save-by-grade -> save_training_data_handler
     
     Args:
@@ -123,6 +127,11 @@ def _route_get_request(path: str, query_params: Dict[str, Any]) -> dict:
         logger.info("Routing to watchlist handler (get)")
         return handle_get_watchlist(query_params)
 
+    # Route: GET /positions
+    if path == '/positions':
+        logger.info("Routing to positions handler (get)")
+        return handle_get_positions(query_params)
+
     # Route: GET /stocks/batch (must be before /{symbol} pattern)
     if path == '/stocks/batch':
         logger.info("Routing to stock_batch handler")
@@ -162,6 +171,11 @@ def _route_post_request(path: str, body: Dict[str, Any]) -> dict:
         logger.info("Routing to watchlist handler (add)")
         return handle_add_to_watchlist(body)
 
+    # Route: POST /positions
+    if path == '/positions':
+        logger.info("Routing to positions handler (add)")
+        return handle_add_position(body)
+
     # Route: POST /stocks/{symbol}/refresh
     refresh_pattern = r'^/stocks/([^/]+)/refresh$'
     refresh_match = re.match(refresh_pattern, path)
@@ -193,6 +207,11 @@ def _route_delete_request(path: str, body: Dict[str, Any]) -> dict:
     if path == '/watchlist':
         logger.info("Routing to watchlist handler (remove)")
         return handle_remove_from_watchlist(body)
+
+    # Route: DELETE /positions
+    if path == '/positions':
+        logger.info("Routing to positions handler (remove)")
+        return handle_remove_position(body)
 
     logger.warning(f"Unknown DELETE path: {path}")
     return error_response(f"Endpoint not found: {path}", 404)

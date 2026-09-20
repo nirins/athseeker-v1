@@ -26,6 +26,13 @@
             [title]="isWatched ? 'Remove from watchlist' : 'Add to watchlist'">
             {{ isWatched ? '★' : '☆' }}
           </button>
+          <button
+            class="position-btn"
+            [class.held]="hasPosition"
+            (click)="togglePosition($event)"
+            [title]="hasPosition ? 'Remove position' : 'Mark as holding a position'">
+            {{ hasPosition ? '●' : '○' }}
+          </button>
           <button 
             class="score-btn" 
             *ngIf="isLabelMode"

@@ -8,6 +8,7 @@ import { StockData, ChartDisplayMode, ChartType, EnhancedStockData } from '../..
 import { LoadingSpinnerComponent } from '../../../../shared/components/loading-spinner/loading-spinner.component';
 import { ErrorMessageComponent } from '../../../../shared/components/error-message/error-message.component';
 import { WatchlistService } from '../../../../core/services/watchlist.service';
+import { PositionService } from '../../../../core/services/position.service';
 
 // Register Chart.js components
 Chart.register(...registerables, CandlestickController, CandlestickElement, OhlcController, OhlcElement, TimeScale, LinearScale);
@@ -42,7 +43,11 @@ export class StockChartComponent implements OnInit, OnChanges, OnDestroy, AfterV
   isLoading = false;
   error: string | null = null;
 
-  constructor(private router: Router, private watchlistService: WatchlistService) {}
+  constructor(
+    private router: Router,
+    private watchlistService: WatchlistService,
+    private positionService: PositionService
+  ) {}
 
   get isWatched(): boolean {
     return this.watchlistService.isWatched(this.currentStockData?.symbol);
@@ -51,6 +56,15 @@ export class StockChartComponent implements OnInit, OnChanges, OnDestroy, AfterV
   toggleWatchlist(event: MouseEvent): void {
     event.stopPropagation();
     this.watchlistService.toggle(this.currentStockData.symbol, this.beautyScore ?? undefined).subscribe();
+  }
+
+  get hasPosition(): boolean {
+    return this.positionService.hasPosition(this.currentStockData?.symbol);
+  }
+
+  togglePosition(event: MouseEvent): void {
+    event.stopPropagation();
+    this.positionService.toggle(this.currentStockData.symbol).subscribe();
   }
 
   private isMobileDevice(): boolean {

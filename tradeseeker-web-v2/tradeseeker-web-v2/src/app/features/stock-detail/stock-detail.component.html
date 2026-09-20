@@ -11,6 +11,14 @@
         [attr.aria-label]="isWatched ? 'Remove ' + symbol + ' from watchlist' : 'Add ' + symbol + ' to watchlist'">
         {{ isWatched ? '★' : '☆' }}
       </button>
+      <button
+        class="position-star-btn"
+        [class.held]="hasPosition"
+        (click)="togglePosition()"
+        [title]="hasPosition ? 'Remove position' : 'Mark as holding a position'"
+        [attr.aria-label]="hasPosition ? 'Remove position in ' + symbol : 'Mark position held in ' + symbol">
+        {{ hasPosition ? '●' : '○' }}
+      </button>
     </div>
     <div class="controls">
       <button 

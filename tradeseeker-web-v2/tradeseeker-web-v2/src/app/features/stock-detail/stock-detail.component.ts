@@ -7,6 +7,7 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { ApiService } from '../../core/services/api.service';
 import { WatchlistService } from '../../core/services/watchlist.service';
+import { PositionService } from '../../core/services/position.service';
 import { StockData, ChartType, ChartDisplayMode } from '../../core/models';
 import { StockChartComponent } from '../dashboard/components/stock-chart/stock-chart.component';
 import { ChartTypeSelectorComponent } from '../dashboard/components/chart-type-selector/chart-type-selector.component';
@@ -86,6 +87,7 @@ export class StockDetailComponent implements OnInit, OnDestroy {
     private location: Location,
     private apiService: ApiService,
     private watchlistService: WatchlistService,
+    private positionService: PositionService,
     private http: HttpClient
   ) {}
 
@@ -95,6 +97,14 @@ export class StockDetailComponent implements OnInit, OnDestroy {
 
   toggleWatchlist(): void {
     this.watchlistService.toggle(this.symbol).subscribe();
+  }
+
+  get hasPosition(): boolean {
+    return this.positionService.hasPosition(this.symbol);
+  }
+
+  togglePosition(): void {
+    this.positionService.toggle(this.symbol).subscribe();
   }
 
   get isNative(): boolean {
@@ -110,6 +120,9 @@ export class StockDetailComponent implements OnInit, OnDestroy {
 
     // Load watchlist state so isWatched is accurate
     this.watchlistService.loadWatchlist().pipe(takeUntil(this.destroy$)).subscribe();
+
+    // Load position state so hasPosition is accurate
+    this.positionService.loadPositions().pipe(takeUntil(this.destroy$)).subscribe();
 
     // Restore chart type from session storage
     const savedChartType = sessionStorage.getItem('detailChartType') as ChartType;

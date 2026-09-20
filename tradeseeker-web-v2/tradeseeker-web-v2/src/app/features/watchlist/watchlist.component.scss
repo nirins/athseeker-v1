@@ -57,6 +57,29 @@
   color: #1e293b;
 }
 
+.held-filter-btn {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background-color: white;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    border-color: #10b981;
+    color: #10b981;
+  }
+
+  &.active {
+    background-color: #ecfdf5;
+    border-color: #10b981;
+    color: #10b981;
+  }
+}
+
 .refresh-button {
   padding: 0.25rem 0.5rem;
   font-size: 0.75rem;

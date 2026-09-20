@@ -7,6 +7,13 @@
       </div>
       <div class="right-controls">
         <button
+          class="held-filter-btn"
+          [class.active]="showOnlyHeld"
+          (click)="toggleShowOnlyHeld()"
+          [title]="showOnlyHeld ? 'Show all watchlist symbols' : 'Show only symbols you hold'">
+          {{ showOnlyHeld ? '● Held' : '○ Held' }}
+        </button>
+        <button
           class="refresh-button"
           [class.active]="isLoading"
           (click)="onRefresh()"
@@ -36,9 +43,14 @@
     <p class="hint">Click ☆ on any stock chart to add it.</p>
   </div>
 
+  <div *ngIf="!isLoading && !error && stockDataArray.length > 0 && showOnlyHeld && displayedStockDataArray.length === 0" class="empty-state">
+    <p>No held symbols in your watchlist.</p>
+    <p class="hint">Click ○ on any stock chart to mark it as held.</p>
+  </div>
+
   <app-chart-grid
-    *ngIf="stockDataArray.length > 0"
-    [stockData]="stockDataArray"
+    *ngIf="displayedStockDataArray.length > 0"
+    [stockData]="displayedStockDataArray"
     [displayMode]="selectedDisplayMode"
     [chartType]="selectedChartType"
     [isLabelMode]="false"

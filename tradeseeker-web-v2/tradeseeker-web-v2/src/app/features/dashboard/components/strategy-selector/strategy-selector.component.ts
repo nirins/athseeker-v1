@@ -19,11 +19,12 @@ export class StrategySelectorComponent {
   @Input() selectedStrategy: TradingStrategy = 'ath';
   @Output() strategyChange = new EventEmitter<TradingStrategy>();
 
+  // 'death-cross' is intentionally hidden from the UI (still a valid
+  // TradingStrategy / API route if selected another way, e.g. sessionStorage).
   strategies: StrategyOption[] = [
     { value: 'ath', label: 'ATH' },
     { value: 'near-ath', label: 'Near ATH' },
     { value: 'golden-cross', label: 'Golden' },
-    { value: 'death-cross', label: 'Death' },
     { value: 'hype', label: 'Hype' }
   ];
 

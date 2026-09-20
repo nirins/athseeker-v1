@@ -5,6 +5,7 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { ApiService } from '../../core/services/api.service';
 import { WatchlistService } from '../../core/services/watchlist.service';
+import { PositionService } from '../../core/services/position.service';
 import { StockData, ChartDisplayMode, ChartType } from '../../core/models';
 import { ChartGridComponent } from '../dashboard/components/chart-grid/chart-grid.component';
 import { LoadingSpinnerComponent } from '../../shared/components/loading-spinner/loading-spinner.component';
@@ -25,6 +26,7 @@ export class WatchlistComponent implements OnInit, OnDestroy {
   selectedDisplayMode: ChartDisplayMode = 'both';
   selectedChartType: ChartType = 'candlestick';
   showScrollTop = false;
+  showOnlyHeld = false;
 
   private destroy$ = new Subject<void>();
   private onScrollBound = this.onScroll.bind(this);
@@ -36,11 +38,23 @@ export class WatchlistComponent implements OnInit, OnDestroy {
   constructor(
     private apiService: ApiService,
     private watchlistService: WatchlistService,
+    private positionService: PositionService,
     private router: Router
   ) {}
 
   get isNative(): boolean {
     return !!(window as any).Capacitor?.isNativePlatform?.();
+  }
+
+  get displayedStockDataArray(): StockData[] {
+    if (!this.showOnlyHeld) {
+      return this.stockDataArray;
+    }
+    return this.stockDataArray.filter(s => this.positionService.hasPosition(s.symbol));
+  }
+
+  toggleShowOnlyHeld(): void {
+    this.showOnlyHeld = !this.showOnlyHeld;
   }
 
   goToDashboard(): void {
@@ -49,6 +63,7 @@ export class WatchlistComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadWatchlist();
+    this.positionService.loadPositions().pipe(takeUntil(this.destroy$)).subscribe();
     if (typeof window !== 'undefined') {
       window.addEventListener('scroll', this.onScrollBound, { passive: true });
       window.addEventListener('touchstart', this.onTouchStartBound, { passive: true });

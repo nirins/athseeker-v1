@@ -86,6 +86,34 @@ resource "aws_iam_policy" "dynamodb_watchlist" {
   }
 }
 
+# DynamoDB positions read/write policy
+resource "aws_iam_policy" "dynamodb_positions" {
+  name        = "${var.project_name}-${var.environment}-dynamodb-positions"
+  description = "Allow Lambda to read/write the positions table"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:Query",
+          "dynamodb:PutItem",
+          "dynamodb:DeleteItem"
+        ]
+        Resource = [
+          aws_dynamodb_table.positions.arn
+        ]
+      }
+    ]
+  })
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-dynamodb-positions"
+  }
+}
+
 # Secrets Manager read policy
 resource "aws_iam_policy" "secrets_manager_read" {
   name        = "${var.project_name}-${var.environment}-secrets-read"
@@ -128,6 +156,12 @@ resource "aws_iam_role_policy_attachment" "lambda_dynamodb" {
 resource "aws_iam_role_policy_attachment" "lambda_dynamodb_watchlist" {
   role       = aws_iam_role.lambda_execution.name
   policy_arn = aws_iam_policy.dynamodb_watchlist.arn
+}
+
+# Attach DynamoDB positions policy to Lambda role
+resource "aws_iam_role_policy_attachment" "lambda_dynamodb_positions" {
+  role       = aws_iam_role.lambda_execution.name
+  policy_arn = aws_iam_policy.dynamodb_positions.arn
 }
 
 # Attach AWS managed policy for Lambda basic execution (CloudWatch Logs)
