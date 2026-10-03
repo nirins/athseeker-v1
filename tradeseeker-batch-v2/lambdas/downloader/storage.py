@@ -261,3 +261,30 @@ class StorageManager:
         except Exception as e:
             logger.error(f"Error saving speculative detection for {detection['symbol']}: {str(e)}")
             # Don't raise - this is not critical
+
+    def save_divergence_detection(self, detection: Dict):
+        """
+        Save bullish divergence detection record to DynamoDB (one record per symbol, overwrites existing)
+
+        Args:
+            detection: Divergence detection record dictionary
+        """
+        try:
+            table_name = f"ts-batch-v2-{self.environment}-divergence"
+            table = self.dynamodb.Table(table_name)
+
+            logger.info(f"Saving divergence detection with fields: {list(detection.keys())}")
+
+            # Convert float values to Decimal for DynamoDB
+            detection_record = {
+                k: Decimal(str(v)) if isinstance(v, float) else v
+                for k, v in detection.items()
+            }
+
+            # Save divergence record (will overwrite existing record with same symbol)
+            table.put_item(Item=detection_record)
+            logger.info(f"Divergence detection saved: {detection['symbol']} - score {detection['divergence_score']}")
+
+        except Exception as e:
+            logger.error(f"Error saving divergence detection for {detection['symbol']}: {str(e)}")
+            # Don't raise - this is not critical

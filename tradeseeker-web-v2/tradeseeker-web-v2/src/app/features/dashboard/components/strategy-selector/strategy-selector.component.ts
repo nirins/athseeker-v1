@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-export type TradingStrategy = 'golden-cross' | 'death-cross' | 'ath' | 'near-ath' | 'hype';
+export type TradingStrategy = 'golden-cross' | 'death-cross' | 'ath' | 'near-ath' | 'hype' | 'divergence';
 
 interface StrategyOption {
   value: TradingStrategy;
@@ -25,7 +25,8 @@ export class StrategySelectorComponent {
     { value: 'ath', label: 'ATH' },
     { value: 'near-ath', label: 'Near ATH' },
     { value: 'golden-cross', label: 'Golden' },
-    { value: 'hype', label: 'Hype' }
+    { value: 'hype', label: 'Hype' },
+    { value: 'divergence', label: 'Div' }
   ];
 
   onStrategySelect(strategy: TradingStrategy): void {

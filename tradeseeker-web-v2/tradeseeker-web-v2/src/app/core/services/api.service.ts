@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, forkJoin, from, throwError, of } from 'rxjs';
 import { map, catchError, retry, mergeMap, toArray, filter, tap } from 'rxjs/operators';
-import { GoldenCrossResponse, StockData, StockDataResponse, RawStockData, MovingAveragePoint, ATHResponse, NearATHResponse, SpeculativeResponse } from '../models';
+import { GoldenCrossResponse, StockData, StockDataResponse, RawStockData, MovingAveragePoint, ATHResponse, NearATHResponse, SpeculativeResponse, DivergenceResponse } from '../models';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -121,7 +121,7 @@ export class ApiService {
   /**
    * Fetch stocks based on strategy (golden cross, death cross, or ath)
    */
-  getStrategyStocks(strategy: 'golden-cross' | 'death-cross' | 'ath' | 'near-ath' | 'hype', market: string, limit?: number, offset?: number): Observable<GoldenCrossResponse | ATHResponse | NearATHResponse | SpeculativeResponse> {
+  getStrategyStocks(strategy: 'golden-cross' | 'death-cross' | 'ath' | 'near-ath' | 'hype' | 'divergence', market: string, limit?: number, offset?: number): Observable<GoldenCrossResponse | ATHResponse | NearATHResponse | SpeculativeResponse | DivergenceResponse> {
       if (strategy === 'death-cross') {
         return this.getDeathCrosses(market, limit, offset);
       } else if (strategy === 'ath') {
@@ -130,6 +130,8 @@ export class ApiService {
         return this.getNearATHStocks(market, limit, offset);
       } else if (strategy === 'hype') {
         return this.getSpeculativeStocks(market, undefined, limit, offset);
+      } else if (strategy === 'divergence') {
+        return this.getDivergenceStocks(market, undefined, limit, offset);
       } else {
         return this.getGoldenCrosses(market, limit, offset);
       }
@@ -174,6 +176,33 @@ export class ApiService {
       if (params.length > 0) url += `?${params.join('&')}`;
 
       return this.http.get<SpeculativeResponse>(url).pipe(
+        retry(2),
+        catchError(this.handleError)
+      );
+    };
+
+    return this.withMarketExpansion(market, fetchOne);
+  }
+
+  /**
+   * Fetch list of bullish price/RSI divergence stocks for a market
+   * ("turning point at the bottom": price makes a lower low, RSI makes a
+   * higher low at the same time)
+   */
+  getDivergenceStocks(market?: string, minScore?: number, limit?: number, offset?: number): Observable<DivergenceResponse> {
+    const fetchOne = (marketCode?: string): Observable<DivergenceResponse> => {
+      let url = `${this.baseUrl}/divergence`;
+      const params: string[] = [];
+
+      if (marketCode) params.push(`market=${marketCode}`);
+      if (minScore) params.push(`min_score=${minScore}`);
+      if (limit) params.push(`limit=${limit}`);
+      if (offset) params.push(`offset=${offset}`);
+      params.push(`_t=${Date.now()}`);
+
+      if (params.length > 0) url += `?${params.join('&')}`;
+
+      return this.http.get<DivergenceResponse>(url).pipe(
         retry(2),
         catchError(this.handleError)
       );

@@ -18,6 +18,7 @@ from src.handlers.stock_refresh import handle_stock_refresh
 from src.handlers.ath_stocks import handle_ath_stocks
 from src.handlers.near_ath_stocks import handle_near_ath_stocks
 from src.handlers.speculative_stocks import handle_speculative_stocks
+from src.handlers.divergence_stocks import handle_divergence_stocks
 from src.handlers.openai_summary import handle_openai_summary
 from src.handlers.watchlist import handle_get_watchlist, handle_add_to_watchlist, handle_remove_from_watchlist
 from src.handlers.positions import handle_get_positions, handle_add_position, handle_remove_position
@@ -42,6 +43,7 @@ def route_request(
     - GET /ath -> ath_stocks_handler
     - GET /near-ath -> near_ath_stocks_handler
     - GET /speculative -> speculative_stocks_handler
+    - GET /divergence -> divergence_stocks_handler
     - GET /openai-summary -> openai_summary_handler
     - GET /stocks/{symbol} -> stock_price_handler
     - GET /stocks/{symbol}/history -> stock_history_handler
@@ -116,6 +118,11 @@ def _route_get_request(path: str, query_params: Dict[str, Any]) -> dict:
     if path == '/speculative':
         logger.info("Routing to speculative_stocks handler")
         return handle_speculative_stocks(query_params)
+
+    # Route: GET /divergence
+    if path == '/divergence':
+        logger.info("Routing to divergence_stocks handler")
+        return handle_divergence_stocks(query_params)
 
     # Route: GET /openai-summary
     if path == '/openai-summary':

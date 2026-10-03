@@ -51,6 +51,54 @@ def calculate_ema_series(data: List[Dict], period: int) -> List[float]:
     return ema_values
 
 
+def calculate_rsi_series(data: List[Dict], period: int = 14) -> List[float]:
+    """
+    Calculate RSI (Relative Strength Index) series using Wilder's smoothing.
+
+    RSI formula:
+    - gain = max(close[i] - close[i-1], 0), loss = max(close[i-1] - close[i], 0)
+    - First avg_gain/avg_loss = simple average of the first `period` gains/losses
+    - Subsequent avg = (prev_avg * (period - 1) + current) / period  (Wilder's smoothing)
+    - RS = avg_gain / avg_loss; RSI = 100 - 100 / (1 + RS)
+    - RSI = 100 when avg_loss == 0 (no down days in the smoothing window)
+
+    Args:
+        data: List of price records sorted by date
+        period: RSI period (default: 14)
+
+    Returns:
+        List of RSI values aligned with `data` (None for the first `period` points,
+        which have no prior day to diff against or insufficient warmup)
+    """
+    if len(data) < period + 1:
+        return [None] * len(data)
+
+    deltas = [data[i]['close'] - data[i - 1]['close'] for i in range(1, len(data))]
+
+    rsi_values: List = [None]  # no delta for the first record
+
+    gains = [max(d, 0.0) for d in deltas[:period]]
+    losses = [max(-d, 0.0) for d in deltas[:period]]
+    avg_gain = sum(gains) / period
+    avg_loss = sum(losses) / period
+
+    for _ in range(period):
+        rsi_values.append(None)
+
+    rsi_values[-1] = 100.0 if avg_loss == 0 else 100 - (100 / (1 + avg_gain / avg_loss))
+
+    for i in range(period, len(deltas)):
+        delta = deltas[i]
+        gain = max(delta, 0.0)
+        loss = max(-delta, 0.0)
+        avg_gain = (avg_gain * (period - 1) + gain) / period
+        avg_loss = (avg_loss * (period - 1) + loss) / period
+        rsi = 100.0 if avg_loss == 0 else 100 - (100 / (1 + avg_gain / avg_loss))
+        rsi_values.append(rsi)
+
+    return rsi_values
+
+
 def calculate_candle_metrics(price_data: List[Dict], days: int = 30) -> Dict:
     """
     Calculate candle metrics for the last N days

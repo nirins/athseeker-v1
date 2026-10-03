@@ -13,6 +13,7 @@ from cross_detector import CrossDetector
 from ath_detector import ATHDetector
 from near_ath_detector import NearATHDetector
 from speculative_detector import SpeculativeDetector
+from divergence_detector import DivergenceDetector
 from breakout_analyzer import BreakoutAnalyzer
 from storage import StorageManager
 from api_client import EODHDClient
@@ -54,6 +55,7 @@ class StockDownloader:
         self.ath_detector = ATHDetector(environment, max_daily_volatility)
         self.near_ath_detector = NearATHDetector(environment, max_daily_volatility, near_ath_threshold)
         self.speculative_detector = SpeculativeDetector(environment)
+        self.divergence_detector = DivergenceDetector(environment)
         self.breakout_analyzer = BreakoutAnalyzer()
     
     def process_task(self, record: Dict[str, Any]):
@@ -122,7 +124,7 @@ class StockDownloader:
         detections = self.check_all_detections(symbol_with_market, market_code, moving_averages, filtered_data, candle_metrics)
 
         if detections['has_any']:
-            logger.info(f"Detections found for {symbol_with_market} - Cross: {detections['cross']}, ATH: {detections['ath']}, Speculative: {detections['speculative']}")
+            logger.info(f"Detections found for {symbol_with_market} - Cross: {detections['cross']}, ATH: {detections['ath']}, Speculative: {detections['speculative']}, Divergence: {detections['divergence']}")
 
             # Save to main DynamoDB table (full history)
             self.storage.save_to_dynamodb(task, filtered_data, moving_averages, candle_metrics)
@@ -289,13 +291,15 @@ class StockDownloader:
         has_ath = self.check_ath_detection(symbol_with_market, market_code, price_data)
         has_near_ath = self.check_near_ath_detection(symbol_with_market, market_code, price_data, moving_averages)
         has_speculative = self.check_speculative_detection(symbol_with_market, market_code, price_data, candle_metrics)
+        has_divergence = self.check_divergence_detection(symbol_with_market, market_code, price_data)
 
         return {
             'cross': has_cross,
             'ath': has_ath,
             'near_ath': has_near_ath,
             'speculative': has_speculative,
-            'has_any': has_cross or has_ath or has_near_ath or has_speculative
+            'divergence': has_divergence,
+            'has_any': has_cross or has_ath or has_near_ath or has_speculative or has_divergence
         }
 
     def check_speculative_detection(self, symbol_with_market: str, market_code: str, price_data: List[Dict],
@@ -317,6 +321,24 @@ class StockDownloader:
         )
 
         return speculative_detection is not None
+
+    def check_divergence_detection(self, symbol_with_market: str, market_code: str, price_data: List[Dict]) -> bool:
+        """
+        Check if there is a bullish price/RSI divergence detection (without saving)
+
+        Args:
+            symbol_with_market: Symbol with market code
+            market_code: Market code
+            price_data: List of price records
+
+        Returns:
+            bool: True if divergence detected, False otherwise
+        """
+        divergence_detection = self.divergence_detector.check_divergence_detection(
+            symbol_with_market, market_code, price_data
+        )
+
+        return divergence_detection is not None
 
     def save_detections(self, symbol_with_market: str, market_code: str, moving_averages: List[Dict],
                        price_data: List[Dict], candle_metrics: Dict, detections: Dict):
@@ -342,7 +364,10 @@ class StockDownloader:
 
         if detections['speculative']:
             self.handle_speculative_detection(symbol_with_market, market_code, price_data, candle_metrics)
-    
+
+        if detections['divergence']:
+            self.handle_divergence_detection(symbol_with_market, market_code, price_data)
+
     def filter_data_by_retention(self, sorted_data: List[Dict], market_code: str) -> List[Dict]:
         """
         Filter data based on market code to stay within DynamoDB item size limits
@@ -562,6 +587,27 @@ class StockDownloader:
                 f"Score: {speculative_detection['speculative_score']} - Reasons: {speculative_detection['reasons']}"
             )
             self.storage.save_speculative_detection(speculative_detection)
+
+    def handle_divergence_detection(self, symbol_with_market: str, market_code: str, price_data: List[Dict]):
+        """
+        Handle bullish price/RSI divergence detection and saving
+
+        Args:
+            symbol_with_market: Symbol with market code
+            market_code: Market code
+            price_data: List of price records
+        """
+        divergence_detection = self.divergence_detector.check_divergence_detection(
+            symbol_with_market, market_code, price_data
+        )
+
+        if divergence_detection:
+            logger.info(
+                f"Bullish divergence detected: {symbol_with_market} - "
+                f"Score: {divergence_detection['divergence_score']} - "
+                f"Low: {divergence_detection['low_price']} on {divergence_detection['low_date']}"
+            )
+            self.storage.save_divergence_detection(divergence_detection)
 
     def _merge_price_and_ema_data(self, price_data: List[Dict], moving_averages: List[Dict] = None) -> List[Dict]:
         """

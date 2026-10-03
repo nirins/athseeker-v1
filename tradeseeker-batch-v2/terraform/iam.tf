@@ -145,7 +145,8 @@ resource "aws_iam_role_policy" "downloader" {
           aws_dynamodb_table.death_crosses.arn,
           aws_dynamodb_table.ath_detections.arn,
           aws_dynamodb_table.near_ath_detections.arn,
-          aws_dynamodb_table.speculative_detections.arn
+          aws_dynamodb_table.speculative_detections.arn,
+          aws_dynamodb_table.divergence_detections.arn
         ]
       },
       {

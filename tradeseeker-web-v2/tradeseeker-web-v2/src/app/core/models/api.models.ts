@@ -99,6 +99,33 @@ export interface SpeculativeStock {
 }
 
 /**
+ * Response from divergence stocks API endpoint
+ */
+export interface DivergenceResponse {
+  data: DivergenceStock[];
+}
+
+/**
+ * Individual bullish price/RSI divergence stock data
+ */
+export interface DivergenceStock {
+  symbol: string;
+  detection_date: string;
+  current_price: number;
+  low_price: number;
+  low_date: string;
+  prior_low_price: number;
+  prior_low_date: string;
+  rsi_at_low: number;
+  prior_rsi_at_low: number;
+  divergence_score: number;
+  days_since_low: number;
+  market_code: string;
+  detected_at: string;
+  ttl: number;
+}
+
+/**
  * Response wrapper for stock data API endpoint
  */
 export interface StockDataResponse {
