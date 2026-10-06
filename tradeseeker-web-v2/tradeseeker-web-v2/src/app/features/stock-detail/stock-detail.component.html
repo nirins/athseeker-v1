@@ -28,11 +28,18 @@
         [title]="'Fetch latest data from EODHD for ' + symbol">
         {{ isRefreshing ? 'Refreshing...' : 'Refresh' }}
       </button>
-      <button 
+      <button
         class="openai-button"
         (click)="getOpenAIAnalysis()"
         [disabled]="isLoadingOpenAI">
         {{ isLoadingOpenAI ? 'Loading...' : 'OpenAI' }}
+      </button>
+      <button
+        class="openai-button"
+        (click)="explainChart()"
+        [disabled]="isLoadingExplain"
+        title="Screenshot the charts below and ask OpenAI to explain trend, upside, and risk">
+        {{ isLoadingExplain ? 'Explaining...' : 'Explain' }}
       </button>
     </div>
   </div>
@@ -74,14 +81,35 @@
     <app-error-message [message]="openAIError"></app-error-message>
   </div>
 
-  <div class="charts-grid" *ngIf="!isLoading && !error && stockDataArray.length > 0">
+  <!-- Explain-chart Analysis Section -->
+  <div class="openai-analysis" *ngIf="explainAnalysis">
+    <div class="analysis-header">
+      <h2>Chart Explanation for {{ symbol }}</h2>
+    </div>
+    <div class="analysis-content">
+      <div class="analysis-points" [innerHTML]="getFormattedExplainAnalysis()"></div>
+    </div>
+  </div>
+
+  <!-- Explain-chart Loading State -->
+  <div class="openai-loading" *ngIf="isLoadingExplain">
+    <app-loading-spinner></app-loading-spinner>
+    <p>Capturing charts and asking OpenAI to explain {{ symbol }}...</p>
+  </div>
+
+  <!-- Explain-chart Error State -->
+  <div class="openai-error" *ngIf="explainError">
+    <app-error-message [message]="explainError"></app-error-message>
+  </div>
+
+  <div class="charts-grid" #chartsCapture *ngIf="!isLoading && !error && stockDataArray.length > 0">
     <div class="chart-item" *ngFor="let stockData of stockDataArray; let i = index">
       <div class="chart-header">
         <h3>{{ getTimeRangeLabel(i) }}</h3>
         <span class="data-points">{{ stockData.prices.length }} data points</span>
       </div>
       <div class="chart-wrapper">
-        <app-stock-chart 
+        <app-stock-chart
           [stockData]="stockData"
           [displayMode]="selectedDisplayMode"
           [chartType]="selectedChartType"

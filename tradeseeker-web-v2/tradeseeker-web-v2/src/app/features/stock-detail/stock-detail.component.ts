@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Location } from '@angular/common';
@@ -35,6 +35,19 @@ export interface OpenAIAnalysisResponse {
   };
 }
 
+export interface ExplainChartResponse {
+  data: {
+    symbol: string;
+    model: string;
+    analysis: string;
+    usage: {
+      prompt_tokens: number;
+      completion_tokens: number;
+      total_tokens: number;
+    };
+  };
+}
+
 @Component({
   selector: 'app-stock-detail',
   standalone: true,
@@ -61,6 +74,12 @@ export class StockDetailComponent implements OnInit, OnDestroy {
   openAIAnalysis: OpenAIAnalysisResponse['data'] | null = null;
   isLoadingOpenAI = false;
   openAIError: string | null = null;
+
+  // Explain-chart (screenshot -> OpenAI vision) properties
+  @ViewChild('chartsCapture') chartsCaptureEl?: ElementRef<HTMLElement>;
+  explainAnalysis: ExplainChartResponse['data'] | null = null;
+  isLoadingExplain = false;
+  explainError: string | null = null;
 
   // Refresh properties
   isRefreshing = false;
@@ -342,6 +361,155 @@ export class StockDetailComponent implements OnInit, OnDestroy {
         this.isLoadingOpenAI = false;
       }
     });
+  }
+
+  /**
+   * Screenshot the multi-timeframe chart grid and send it to OpenAI's
+   * vision model for a short explanation (trend / upside / risk).
+   */
+  async explainChart(): Promise<void> {
+    if (!this.symbol || this.isLoadingExplain) {
+      return;
+    }
+
+    const captureTarget = this.chartsCaptureEl?.nativeElement;
+    if (!captureTarget) {
+      this.explainError = 'Chart is not ready to capture yet.';
+      setTimeout(() => { this.explainError = null; }, 6000);
+      return;
+    }
+
+    this.isLoadingExplain = true;
+    this.explainError = null;
+    this.explainAnalysis = null;
+
+    try {
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(captureTarget, {
+        backgroundColor: '#ffffff',
+        scale: 1, // keep the payload small — this is a multi-chart grid, not one chart
+        useCORS: true
+      });
+
+      // JPEG, not PNG: charts have no transparency, and JPEG keeps the
+      // base64 payload well under API Gateway's 10MB request limit.
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+
+      const apiUrl = 'https://56qpa0i92h.execute-api.ap-southeast-1.amazonaws.com/dev/explain-chart';
+
+      this.http.post<ExplainChartResponse>(apiUrl, {
+        symbol: this.symbol,
+        image: dataUrl,
+        context: this.buildNumericContext()
+      }).pipe(
+        takeUntil(this.destroy$)
+      ).subscribe({
+        next: (response) => {
+          this.explainAnalysis = response.data;
+          this.isLoadingExplain = false;
+        },
+        error: (error) => {
+          console.error('Error explaining chart:', error);
+          this.explainError = `Failed to explain the chart for ${this.symbol}. Please try again.`;
+          this.isLoadingExplain = false;
+        }
+      });
+    } catch (error) {
+      console.error('Error capturing chart screenshot:', error);
+      this.explainError = 'Failed to capture the chart screenshot.';
+      this.isLoadingExplain = false;
+    }
+  }
+
+  /**
+   * Compute real numeric context (price, % change, 52-week range, EMA
+   * position, volume vs average) from already-loaded chart data, so the
+   * model has concrete numbers to reference instead of guessing from
+   * pixels — this is what actually fixes "every stock sounds the same".
+   * Uses the longest-range series as the source of truth: every shorter
+   * range is just a tail-subset of it ending at the same latest date.
+   */
+  private buildNumericContext(): string {
+    if (!this.stockDataArray.length) {
+      return '';
+    }
+
+    const longest = this.stockDataArray[this.stockDataArray.length - 1];
+    const prices = longest.prices;
+    if (!prices.length) {
+      return '';
+    }
+
+    const last = prices[prices.length - 1];
+    const currentPrice = last.close;
+
+    const pctChange = (tradingDaysBack: number): number | null => {
+      const idx = prices.length - 1 - tradingDaysBack;
+      if (idx < 0 || !prices[idx].close) {
+        return null;
+      }
+      const past = prices[idx].close;
+      return ((currentPrice - past) / past) * 100;
+    };
+
+    const change1m = pctChange(21);
+    const change3m = pctChange(63);
+    const change1y = pctChange(252);
+
+    const yearWindow = prices.slice(-252);
+    const high52w = Math.max(...yearWindow.map(p => p.high));
+    const low52w = Math.min(...yearWindow.map(p => p.low));
+
+    const volWindow = prices.slice(-20);
+    const avgVolume20d = volWindow.length
+      ? volWindow.reduce((sum, p) => sum + (p.volume || 0), 0) / volWindow.length
+      : 0;
+    const volumeVsAvgPct = avgVolume20d > 0 ? ((last.volume - avgVolume20d) / avgVolume20d) * 100 : null;
+
+    const emaAt = (series: number[] | undefined): number | null => {
+      if (!series || series.length === 0) return null;
+      const v = series[series.length - 1];
+      return v != null ? v : null;
+    };
+    const ema50 = emaAt(longest.emas?.ema50);
+    const ema200 = emaAt(longest.emas?.ema200);
+
+    const fmt = (n: number | null, digits = 2): string => n === null ? 'n/a' : n.toFixed(digits);
+
+    const emaPosition = ema50 !== null && ema200 !== null
+      ? `price is ${currentPrice > ema50 ? 'above' : 'below'} its 50-day EMA and ${currentPrice > ema200 ? 'above' : 'below'} its 200-day EMA`
+      : 'EMA data unavailable';
+
+    // Spell out direction in words rather than a bare signed %, which the
+    // model previously misread as "volume is X% OF average" (i.e. below
+    // average) when it actually meant "X% ABOVE average".
+    const volumeLine = volumeVsAvgPct === null
+      ? 'Volume vs 20-day average: n/a'
+      : volumeVsAvgPct >= 0
+        ? `Latest volume is ${fmt(volumeVsAvgPct)}% above its 20-day average`
+        : `Latest volume is ${fmt(Math.abs(volumeVsAvgPct))}% below its 20-day average`;
+
+    return [
+      `Current price: ${fmt(currentPrice)} as of ${last.date}`,
+      `Change: ${fmt(change1m)}% (1 month), ${fmt(change3m)}% (3 months), ${fmt(change1y)}% (1 year)`,
+      `52-week range: ${fmt(low52w)} to ${fmt(high52w)}`,
+      `50-day EMA: ${fmt(ema50)}, 200-day EMA: ${fmt(ema200)} — ${emaPosition}`,
+      volumeLine
+    ].join('\n');
+  }
+
+  /**
+   * Format the explain-chart analysis text for HTML display — a single
+   * paragraph now, so this is just basic markdown bold handling, no
+   * bullet/section parsing.
+   */
+  getFormattedExplainAnalysis(): string {
+    if (!this.explainAnalysis?.analysis) {
+      return '';
+    }
+
+    return this.explainAnalysis.analysis
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
   }
 
   /**

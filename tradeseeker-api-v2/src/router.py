@@ -21,6 +21,7 @@ from src.handlers.speculative_stocks import handle_speculative_stocks
 from src.handlers.divergence_stocks import handle_divergence_stocks
 from src.handlers.confirmed_reversal_stocks import handle_confirmed_reversal_stocks
 from src.handlers.openai_summary import handle_openai_summary
+from src.handlers.explain_chart import handle_explain_chart
 from src.handlers.watchlist import handle_get_watchlist, handle_add_to_watchlist, handle_remove_from_watchlist
 from src.handlers.positions import handle_get_positions, handle_add_position, handle_remove_position
 from src.formatters import error_response
@@ -47,6 +48,7 @@ def route_request(
     - GET /divergence -> divergence_stocks_handler
     - GET /confirmed-reversal -> confirmed_reversal_stocks_handler
     - GET /openai-summary -> openai_summary_handler
+    - POST /explain-chart -> explain_chart_handler
     - GET /stocks/{symbol} -> stock_price_handler
     - GET /stocks/{symbol}/history -> stock_history_handler
     - GET /watchlist -> watchlist_handler (get)
@@ -197,6 +199,11 @@ def _route_post_request(path: str, body: Dict[str, Any]) -> dict:
         symbol = refresh_match.group(1)
         logger.info(f"Routing to stock_refresh handler with symbol={symbol}")
         return handle_stock_refresh(symbol)
+
+    # Route: POST /explain-chart
+    if path == '/explain-chart':
+        logger.info("Routing to explain_chart handler")
+        return handle_explain_chart(body)
 
     # Route: POST /training-data/save-by-grade
     if path == '/training-data/save-by-grade':

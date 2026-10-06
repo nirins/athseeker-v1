@@ -987,6 +987,7 @@ resource "aws_api_gateway_deployment" "tradeseeker_api" {
     aws_api_gateway_integration.positions_post_lambda,
     aws_api_gateway_integration.positions_delete_lambda,
     aws_api_gateway_integration.stock_refresh_lambda,
+    aws_api_gateway_integration.explain_chart_lambda,
     aws_api_gateway_integration.golden_crosses_options,
     aws_api_gateway_integration.death_crosses_options,
     aws_api_gateway_integration.ath_options,
@@ -1040,6 +1041,7 @@ resource "aws_api_gateway_deployment" "tradeseeker_api" {
       aws_api_gateway_resource.watchlist.id,
       aws_api_gateway_resource.positions.id,
       aws_api_gateway_resource.stock_refresh.id,
+      aws_api_gateway_resource.explain_chart.id,
       aws_api_gateway_method.golden_crosses_get.id,
       aws_api_gateway_method.death_crosses_get.id,
       aws_api_gateway_method.ath_get.id,
@@ -1062,6 +1064,8 @@ resource "aws_api_gateway_deployment" "tradeseeker_api" {
       aws_api_gateway_method.positions_options.id,
       aws_api_gateway_method.stock_refresh_post.id,
       aws_api_gateway_method.stock_refresh_options.id,
+      aws_api_gateway_method.explain_chart_post.id,
+      aws_api_gateway_method.explain_chart_options.id,
       aws_api_gateway_method.golden_crosses_options.id,
       aws_api_gateway_method.death_crosses_options.id,
       aws_api_gateway_method.ath_options.id,
@@ -1094,6 +1098,8 @@ resource "aws_api_gateway_deployment" "tradeseeker_api" {
       aws_api_gateway_integration.positions_delete_lambda.id,
       aws_api_gateway_integration.stock_refresh_lambda.id,
       aws_api_gateway_integration.stock_refresh_options.id,
+      aws_api_gateway_integration.explain_chart_lambda.id,
+      aws_api_gateway_integration.explain_chart_options.id,
       aws_api_gateway_integration.golden_crosses_options.id,
       aws_api_gateway_integration.death_crosses_options.id,
       aws_api_gateway_integration.ath_options.id,
@@ -1252,6 +1258,85 @@ resource "aws_api_gateway_integration_response" "stock_refresh_options" {
     "method.response.header.Access-Control-Allow-Origin"  = "'*'"
   }
 }
+# /explain-chart resource
+resource "aws_api_gateway_resource" "explain_chart" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  parent_id   = aws_api_gateway_rest_api.tradeseeker_api.root_resource_id
+  path_part   = "explain-chart"
+}
+
+# POST method for /explain-chart
+resource "aws_api_gateway_method" "explain_chart_post" {
+  rest_api_id   = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id   = aws_api_gateway_resource.explain_chart.id
+  http_method   = "POST"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "explain_chart_lambda" {
+  rest_api_id             = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id             = aws_api_gateway_resource.explain_chart.id
+  http_method             = aws_api_gateway_method.explain_chart_post.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.tradeseeker_api.invoke_arn
+}
+
+resource "aws_api_gateway_method_response" "explain_chart_post" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id = aws_api_gateway_resource.explain_chart.id
+  http_method = aws_api_gateway_method.explain_chart_post.http_method
+  status_code = "200"
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = true
+  }
+}
+
+# CORS for /explain-chart
+resource "aws_api_gateway_method" "explain_chart_options" {
+  rest_api_id   = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id   = aws_api_gateway_resource.explain_chart.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "explain_chart_options" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id = aws_api_gateway_resource.explain_chart.id
+  http_method = aws_api_gateway_method.explain_chart_options.http_method
+  type        = "MOCK"
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "explain_chart_options" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id = aws_api_gateway_resource.explain_chart.id
+  http_method = aws_api_gateway_method.explain_chart_options.http_method
+  status_code = "200"
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+  response_models = {
+    "application/json" = "Empty"
+  }
+}
+
+resource "aws_api_gateway_integration_response" "explain_chart_options" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id = aws_api_gateway_resource.explain_chart.id
+  http_method = aws_api_gateway_method.explain_chart_options.http_method
+  status_code = aws_api_gateway_method_response.explain_chart_options.status_code
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods" = "'POST,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+}
+
 # /training-data resource
 resource "aws_api_gateway_resource" "training_data" {
   rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id

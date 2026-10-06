@@ -1,5 +1,6 @@
 """Unit tests for handler modules."""
 
+import base64
 import json
 import pytest
 from unittest.mock import patch, MagicMock
@@ -8,6 +9,7 @@ from botocore.exceptions import ClientError
 from src.handlers.golden_crosses import handle_golden_crosses
 from src.handlers.stock_price import handle_stock_price
 from src.handlers.openai_summary import handle_openai_summary
+from src.handlers.explain_chart import handle_explain_chart
 from src.handlers.speculative_stocks import handle_speculative_stocks
 from src.handlers.divergence_stocks import handle_divergence_stocks
 from src.handlers.confirmed_reversal_stocks import handle_confirmed_reversal_stocks
@@ -510,3 +512,131 @@ class TestOpenAISummaryHandler:
         assert response['statusCode'] == 500
         body = json.loads(response['body'])
         assert 'Failed to generate AI analysis' in body['error']
+
+
+class TestExplainChartHandler:
+    """Tests for explain-chart handler."""
+
+    def _fake_image(self) -> str:
+        return base64.b64encode(b'fake-png-bytes-for-testing').decode()
+
+    @patch('src.handlers.explain_chart.get_openai_api_key')
+    @patch('src.handlers.explain_chart.requests.post')
+    def test_successful_explanation(self, mock_post, mock_get_api_key):
+        """Test a successful chart explanation."""
+        mock_get_api_key.return_value = 'test-api-key'
+
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            'choices': [{'message': {'content': '- Trend: up\n- Upside: likely\n- Risk: volatility\n- Bottom line: bullish'}}],
+            'usage': {'prompt_tokens': 500, 'completion_tokens': 80, 'total_tokens': 580}
+        }
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
+
+        response = handle_explain_chart({'symbol': 'AAPL.US', 'image': self._fake_image()})
+
+        assert response['statusCode'] == 200
+        body = json.loads(response['body'])
+        assert body['data']['symbol'] == 'AAPL.US'
+        assert body['data']['model'] == 'gpt-4o-mini'
+        assert 'Trend' in body['data']['analysis']
+        assert body['data']['usage']['total_tokens'] == 580
+
+    @patch('src.handlers.explain_chart.get_openai_api_key')
+    @patch('src.handlers.explain_chart.requests.post')
+    def test_accepts_data_uri_prefix(self, mock_post, mock_get_api_key):
+        """Test that a data:image/png;base64,... prefix is stripped correctly."""
+        mock_get_api_key.return_value = 'test-api-key'
+        mock_response = MagicMock()
+        mock_response.json.return_value = {
+            'choices': [{'message': {'content': 'ok'}}],
+            'usage': {}
+        }
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
+
+        response = handle_explain_chart({
+            'symbol': 'AAPL.US',
+            'image': f'data:image/png;base64,{self._fake_image()}'
+        })
+
+        assert response['statusCode'] == 200
+
+    def test_missing_symbol(self):
+        """Test validation error when symbol is missing."""
+        response = handle_explain_chart({'image': self._fake_image()})
+
+        assert response['statusCode'] == 400
+        body = json.loads(response['body'])
+        assert 'error' in body
+
+    def test_missing_image(self):
+        """Test validation error when image is missing."""
+        response = handle_explain_chart({'symbol': 'AAPL.US'})
+
+        assert response['statusCode'] == 400
+        body = json.loads(response['body'])
+        assert 'error' in body
+
+    def test_invalid_base64(self):
+        """Test validation error when image is not valid base64."""
+        response = handle_explain_chart({'symbol': 'AAPL.US', 'image': '!!!not-base64!!!'})
+
+        assert response['statusCode'] == 400
+
+    def test_image_too_large(self):
+        """Test validation error when the decoded image exceeds the size cap."""
+        huge = base64.b64encode(b'x' * (7 * 1024 * 1024)).decode()
+
+        response = handle_explain_chart({'symbol': 'AAPL.US', 'image': huge})
+
+        assert response['statusCode'] == 400
+        body = json.loads(response['body'])
+        assert 'too large' in body['error']
+
+    @patch('src.handlers.explain_chart.get_openai_api_key')
+    def test_missing_api_key(self, mock_get_api_key):
+        """Test error when OpenAI API key is not configured."""
+        mock_get_api_key.side_effect = ValueError("OPENAI_SECRET_NAME environment variable not set")
+
+        response = handle_explain_chart({'symbol': 'AAPL.US', 'image': self._fake_image()})
+
+        assert response['statusCode'] == 500
+        body = json.loads(response['body'])
+        assert 'OpenAI service not configured' in body['error']
+
+    @patch('src.handlers.explain_chart.get_openai_api_key')
+    @patch('src.handlers.explain_chart.requests.post')
+    def test_openai_api_error(self, mock_post, mock_get_api_key):
+        """Test error handling when the OpenAI API call fails."""
+        import requests
+        mock_get_api_key.return_value = 'test-api-key'
+        mock_resp = MagicMock()
+        mock_resp.text = 'bad request'
+        mock_post.side_effect = requests.exceptions.HTTPError(response=mock_resp)
+
+        response = handle_explain_chart({'symbol': 'AAPL.US', 'image': self._fake_image()})
+
+        assert response['statusCode'] == 502
+
+    @patch('src.handlers.explain_chart.get_openai_api_key')
+    @patch('src.handlers.explain_chart.requests.post')
+    def test_context_is_included_in_prompt(self, mock_post, mock_get_api_key):
+        """Test that the numeric context, when provided, reaches the prompt sent to OpenAI."""
+        mock_get_api_key.return_value = 'test-api-key'
+        mock_response = MagicMock()
+        mock_response.json.return_value = {'choices': [{'message': {'content': 'ok'}}], 'usage': {}}
+        mock_response.raise_for_status = MagicMock()
+        mock_post.return_value = mock_response
+
+        handle_explain_chart({
+            'symbol': 'AAPL.US',
+            'image': self._fake_image(),
+            'context': 'Current price: 150.00 as of 2026-10-06\nChange: 5.00% (1 month)'
+        })
+
+        sent_payload = mock_post.call_args.kwargs['json']
+        sent_text = sent_payload['messages'][1]['content'][0]['text']
+        assert 'Current price: 150.00' in sent_text
+        assert '5.00% (1 month)' in sent_text
