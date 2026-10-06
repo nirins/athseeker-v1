@@ -64,6 +64,12 @@ variable "divergence_stocks_table" {
   default     = "ts-batch-v2-dev-divergence"
 }
 
+variable "confirmed_reversal_stocks_table" {
+  description = "DynamoDB table name for confirmed reversal stocks"
+  type        = string
+  default     = "ts-batch-v2-dev-confirmed-reversal"
+}
+
 variable "cross_date_index" {
   description = "GSI name for cross_date index"
   type        = string

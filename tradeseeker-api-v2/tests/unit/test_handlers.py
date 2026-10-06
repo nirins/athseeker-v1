@@ -10,6 +10,7 @@ from src.handlers.stock_price import handle_stock_price
 from src.handlers.openai_summary import handle_openai_summary
 from src.handlers.speculative_stocks import handle_speculative_stocks
 from src.handlers.divergence_stocks import handle_divergence_stocks
+from src.handlers.confirmed_reversal_stocks import handle_confirmed_reversal_stocks
 
 
 class TestGoldenCrossesHandler:
@@ -236,6 +237,82 @@ class TestDivergenceStocksHandler:
         )
 
         response = handle_divergence_stocks({'market': 'US'})
+
+        assert response['statusCode'] == 503
+        body = json.loads(response['body'])
+        assert 'error' in body
+
+
+class TestConfirmedReversalStocksHandler:
+    """Tests for confirmed reversal stocks handler."""
+
+    @patch('src.handlers.confirmed_reversal_stocks.DynamoDBClient')
+    def test_market_query_uses_score_index(self, mock_db_class):
+        """Test that a market filter routes to the score-ordered query."""
+        mock_db = MagicMock()
+        mock_db_class.return_value = mock_db
+        mock_db.query_confirmed_reversal_stocks_by_score.return_value = [
+            {'symbol': 'DOHOME.BK', 'market_code': 'BK', 'confirmed_reversal_score': 55},
+        ]
+
+        response = handle_confirmed_reversal_stocks({'market': 'BK'})
+
+        mock_db.query_confirmed_reversal_stocks_by_score.assert_called_once_with('BK', 50)
+        assert response['statusCode'] == 200
+        body = json.loads(response['body'])
+        assert len(body['data']) == 1
+        assert body['data'][0]['symbol'] == 'DOHOME.BK'
+
+    @patch('src.handlers.confirmed_reversal_stocks.DynamoDBClient')
+    def test_no_market_falls_back_to_scan(self, mock_db_class):
+        """Test that omitting market performs a table scan."""
+        mock_db = MagicMock()
+        mock_db_class.return_value = mock_db
+        mock_db.scan_confirmed_reversal_stocks.return_value = []
+
+        response = handle_confirmed_reversal_stocks({})
+
+        mock_db.scan_confirmed_reversal_stocks.assert_called_once_with(None, limit=50, offset=0)
+        assert response['statusCode'] == 200
+
+    @patch('src.handlers.confirmed_reversal_stocks.DynamoDBClient')
+    def test_min_score_filter_applied(self, mock_db_class):
+        """Test min_score filters out records below the threshold."""
+        mock_db = MagicMock()
+        mock_db_class.return_value = mock_db
+        mock_db.query_confirmed_reversal_stocks_by_score.return_value = [
+            {'symbol': 'DOHOME.BK', 'market_code': 'BK', 'confirmed_reversal_score': 55},
+            {'symbol': 'ITC.BK', 'market_code': 'BK', 'confirmed_reversal_score': 20},
+        ]
+
+        response = handle_confirmed_reversal_stocks({'market': 'BK', 'min_score': '50'})
+
+        assert response['statusCode'] == 200
+        body = json.loads(response['body'])
+        assert len(body['data']) == 1
+        assert body['data'][0]['symbol'] == 'DOHOME.BK'
+
+    @patch('src.handlers.confirmed_reversal_stocks.DynamoDBClient')
+    def test_validation_error(self, mock_db_class):
+        """Test invalid market returns 400."""
+        response = handle_confirmed_reversal_stocks({'market': 'JP'})
+
+        assert response['statusCode'] == 400
+        body = json.loads(response['body'])
+        assert 'error' in body
+        assert 'details' in body
+
+    @patch('src.handlers.confirmed_reversal_stocks.DynamoDBClient')
+    def test_dynamodb_throttling_error(self, mock_db_class):
+        """Test DynamoDB throttling returns 503."""
+        mock_db = MagicMock()
+        mock_db_class.return_value = mock_db
+        mock_db.query_confirmed_reversal_stocks_by_score.side_effect = ClientError(
+            {'Error': {'Code': 'ProvisionedThroughputExceededException', 'Message': 'Throttled'}},
+            'Query'
+        )
+
+        response = handle_confirmed_reversal_stocks({'market': 'BK'})
 
         assert response['statusCode'] == 503
         body = json.loads(response['body'])

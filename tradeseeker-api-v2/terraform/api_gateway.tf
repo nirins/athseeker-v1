@@ -351,6 +351,92 @@ resource "aws_api_gateway_integration_response" "divergence_options" {
   }
 }
 
+# /confirmed-reversal resource
+resource "aws_api_gateway_resource" "confirmed_reversal" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  parent_id   = aws_api_gateway_rest_api.tradeseeker_api.root_resource_id
+  path_part   = "confirmed-reversal"
+}
+
+# GET method for /confirmed-reversal
+resource "aws_api_gateway_method" "confirmed_reversal_get" {
+  rest_api_id   = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id   = aws_api_gateway_resource.confirmed_reversal.id
+  http_method   = "GET"
+  authorization = "NONE"
+}
+
+# Lambda integration for /confirmed-reversal GET
+resource "aws_api_gateway_integration" "confirmed_reversal_lambda" {
+  rest_api_id             = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id             = aws_api_gateway_resource.confirmed_reversal.id
+  http_method             = aws_api_gateway_method.confirmed_reversal_get.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.tradeseeker_api.invoke_arn
+}
+
+# Method response for /confirmed-reversal GET
+resource "aws_api_gateway_method_response" "confirmed_reversal_get" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id = aws_api_gateway_resource.confirmed_reversal.id
+  http_method = aws_api_gateway_method.confirmed_reversal_get.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Origin" = true
+  }
+}
+
+# CORS configuration for /confirmed-reversal
+resource "aws_api_gateway_method" "confirmed_reversal_options" {
+  rest_api_id   = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id   = aws_api_gateway_resource.confirmed_reversal.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "confirmed_reversal_options" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id = aws_api_gateway_resource.confirmed_reversal.id
+  http_method = aws_api_gateway_method.confirmed_reversal_options.http_method
+  type        = "MOCK"
+
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "confirmed_reversal_options" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id = aws_api_gateway_resource.confirmed_reversal.id
+  http_method = aws_api_gateway_method.confirmed_reversal_options.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = true
+    "method.response.header.Access-Control-Allow-Methods" = true
+    "method.response.header.Access-Control-Allow-Origin"  = true
+  }
+
+  response_models = {
+    "application/json" = "Empty"
+  }
+}
+
+resource "aws_api_gateway_integration_response" "confirmed_reversal_options" {
+  rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
+  resource_id = aws_api_gateway_resource.confirmed_reversal.id
+  http_method = aws_api_gateway_method.confirmed_reversal_options.http_method
+  status_code = aws_api_gateway_method_response.confirmed_reversal_options.status_code
+
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+    "method.response.header.Access-Control-Allow-Methods" = "'GET,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+}
+
 # /openai-summary resource
 resource "aws_api_gateway_resource" "openai_summary" {
   rest_api_id = aws_api_gateway_rest_api.tradeseeker_api.id
@@ -888,6 +974,7 @@ resource "aws_api_gateway_deployment" "tradeseeker_api" {
     aws_api_gateway_integration.near_ath_lambda,
     aws_api_gateway_integration.speculative_lambda,
     aws_api_gateway_integration.divergence_lambda,
+    aws_api_gateway_integration.confirmed_reversal_lambda,
     aws_api_gateway_integration.openai_summary_lambda,
     aws_api_gateway_integration.stock_symbol_lambda,
     aws_api_gateway_integration.stock_batch_lambda,
@@ -906,6 +993,7 @@ resource "aws_api_gateway_deployment" "tradeseeker_api" {
     aws_api_gateway_integration.near_ath_options,
     aws_api_gateway_integration.speculative_options,
     aws_api_gateway_integration.divergence_options,
+    aws_api_gateway_integration.confirmed_reversal_options,
     aws_api_gateway_integration.openai_summary_options,
     aws_api_gateway_integration.stock_symbol_options,
     aws_api_gateway_integration.stock_batch_options,
@@ -919,6 +1007,7 @@ resource "aws_api_gateway_deployment" "tradeseeker_api" {
     aws_api_gateway_method_response.near_ath_get,
     aws_api_gateway_method_response.speculative_get,
     aws_api_gateway_method_response.divergence_get,
+    aws_api_gateway_method_response.confirmed_reversal_get,
     aws_api_gateway_method_response.openai_summary_get,
     aws_api_gateway_method_response.stock_symbol_get,
     aws_api_gateway_method_response.stock_batch_get,
@@ -940,6 +1029,7 @@ resource "aws_api_gateway_deployment" "tradeseeker_api" {
       aws_api_gateway_resource.near_ath.id,
       aws_api_gateway_resource.speculative.id,
       aws_api_gateway_resource.divergence.id,
+      aws_api_gateway_resource.confirmed_reversal.id,
       aws_api_gateway_resource.openai_summary.id,
       aws_api_gateway_resource.stocks.id,
       aws_api_gateway_resource.stock_symbol.id,
@@ -956,6 +1046,7 @@ resource "aws_api_gateway_deployment" "tradeseeker_api" {
       aws_api_gateway_method.near_ath_get.id,
       aws_api_gateway_method.speculative_get.id,
       aws_api_gateway_method.divergence_get.id,
+      aws_api_gateway_method.confirmed_reversal_get.id,
       aws_api_gateway_method.openai_summary_get.id,
       aws_api_gateway_method.stock_symbol_get.id,
       aws_api_gateway_method.stock_batch_get.id,
@@ -977,6 +1068,7 @@ resource "aws_api_gateway_deployment" "tradeseeker_api" {
       aws_api_gateway_method.near_ath_options.id,
       aws_api_gateway_method.speculative_options.id,
       aws_api_gateway_method.divergence_options.id,
+      aws_api_gateway_method.confirmed_reversal_options.id,
       aws_api_gateway_method.openai_summary_options.id,
       aws_api_gateway_method.stock_symbol_options.id,
       aws_api_gateway_method.stock_batch_options.id,
@@ -988,6 +1080,7 @@ resource "aws_api_gateway_deployment" "tradeseeker_api" {
       aws_api_gateway_integration.near_ath_lambda.id,
       aws_api_gateway_integration.speculative_lambda.id,
       aws_api_gateway_integration.divergence_lambda.id,
+      aws_api_gateway_integration.confirmed_reversal_lambda.id,
       aws_api_gateway_integration.openai_summary_lambda.id,
       aws_api_gateway_integration.stock_symbol_lambda.id,
       aws_api_gateway_integration.stock_batch_lambda.id,
@@ -1007,6 +1100,7 @@ resource "aws_api_gateway_deployment" "tradeseeker_api" {
       aws_api_gateway_integration.near_ath_options.id,
       aws_api_gateway_integration.speculative_options.id,
       aws_api_gateway_integration.divergence_options.id,
+      aws_api_gateway_integration.confirmed_reversal_options.id,
       aws_api_gateway_integration.openai_summary_options.id,
       aws_api_gateway_integration.stock_symbol_options.id,
       aws_api_gateway_integration.stock_batch_options.id,
@@ -1020,6 +1114,7 @@ resource "aws_api_gateway_deployment" "tradeseeker_api" {
       aws_api_gateway_method_response.near_ath_get.id,
       aws_api_gateway_method_response.speculative_get.id,
       aws_api_gateway_method_response.divergence_get.id,
+      aws_api_gateway_method_response.confirmed_reversal_get.id,
       aws_api_gateway_method_response.openai_summary_get.id,
       aws_api_gateway_method_response.stock_symbol_get.id,
       aws_api_gateway_method_response.stock_batch_get.id,

@@ -49,7 +49,9 @@ resource "aws_iam_policy" "dynamodb_read" {
           "arn:aws:dynamodb:${var.aws_region}:*:table/${var.speculative_stocks_table}",
           "arn:aws:dynamodb:${var.aws_region}:*:table/${var.speculative_stocks_table}/index/*",
           "arn:aws:dynamodb:${var.aws_region}:*:table/${var.divergence_stocks_table}",
-          "arn:aws:dynamodb:${var.aws_region}:*:table/${var.divergence_stocks_table}/index/*"
+          "arn:aws:dynamodb:${var.aws_region}:*:table/${var.divergence_stocks_table}/index/*",
+          "arn:aws:dynamodb:${var.aws_region}:*:table/${var.confirmed_reversal_stocks_table}",
+          "arn:aws:dynamodb:${var.aws_region}:*:table/${var.confirmed_reversal_stocks_table}/index/*"
         ]
       }
     ]

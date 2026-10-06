@@ -14,6 +14,7 @@ from ath_detector import ATHDetector
 from near_ath_detector import NearATHDetector
 from speculative_detector import SpeculativeDetector
 from divergence_detector import DivergenceDetector
+from confirmed_reversal_detector import ConfirmedReversalDetector
 from breakout_analyzer import BreakoutAnalyzer
 from storage import StorageManager
 from api_client import EODHDClient
@@ -56,6 +57,7 @@ class StockDownloader:
         self.near_ath_detector = NearATHDetector(environment, max_daily_volatility, near_ath_threshold)
         self.speculative_detector = SpeculativeDetector(environment)
         self.divergence_detector = DivergenceDetector(environment)
+        self.confirmed_reversal_detector = ConfirmedReversalDetector(environment, divergence_detector=self.divergence_detector)
         self.breakout_analyzer = BreakoutAnalyzer()
     
     def process_task(self, record: Dict[str, Any]):
@@ -124,7 +126,7 @@ class StockDownloader:
         detections = self.check_all_detections(symbol_with_market, market_code, moving_averages, filtered_data, candle_metrics)
 
         if detections['has_any']:
-            logger.info(f"Detections found for {symbol_with_market} - Cross: {detections['cross']}, ATH: {detections['ath']}, Speculative: {detections['speculative']}, Divergence: {detections['divergence']}")
+            logger.info(f"Detections found for {symbol_with_market} - Cross: {detections['cross']}, ATH: {detections['ath']}, Speculative: {detections['speculative']}, Divergence: {detections['divergence']}, ConfirmedReversal: {detections['confirmed_reversal']}")
 
             # Save to main DynamoDB table (full history)
             self.storage.save_to_dynamodb(task, filtered_data, moving_averages, candle_metrics)
@@ -292,6 +294,7 @@ class StockDownloader:
         has_near_ath = self.check_near_ath_detection(symbol_with_market, market_code, price_data, moving_averages)
         has_speculative = self.check_speculative_detection(symbol_with_market, market_code, price_data, candle_metrics)
         has_divergence = self.check_divergence_detection(symbol_with_market, market_code, price_data)
+        has_confirmed_reversal = self.check_confirmed_reversal_detection(symbol_with_market, market_code, price_data)
 
         return {
             'cross': has_cross,
@@ -299,7 +302,8 @@ class StockDownloader:
             'near_ath': has_near_ath,
             'speculative': has_speculative,
             'divergence': has_divergence,
-            'has_any': has_cross or has_ath or has_near_ath or has_speculative or has_divergence
+            'confirmed_reversal': has_confirmed_reversal,
+            'has_any': has_cross or has_ath or has_near_ath or has_speculative or has_divergence or has_confirmed_reversal
         }
 
     def check_speculative_detection(self, symbol_with_market: str, market_code: str, price_data: List[Dict],
@@ -340,6 +344,24 @@ class StockDownloader:
 
         return divergence_detection is not None
 
+    def check_confirmed_reversal_detection(self, symbol_with_market: str, market_code: str, price_data: List[Dict]) -> bool:
+        """
+        Check if there is a confirmed-reversal detection (without saving)
+
+        Args:
+            symbol_with_market: Symbol with market code
+            market_code: Market code
+            price_data: List of price records
+
+        Returns:
+            bool: True if confirmed reversal detected, False otherwise
+        """
+        confirmed_reversal_detection = self.confirmed_reversal_detector.check_confirmed_reversal_detection(
+            symbol_with_market, market_code, price_data
+        )
+
+        return confirmed_reversal_detection is not None
+
     def save_detections(self, symbol_with_market: str, market_code: str, moving_averages: List[Dict],
                        price_data: List[Dict], candle_metrics: Dict, detections: Dict):
         """
@@ -367,6 +389,9 @@ class StockDownloader:
 
         if detections['divergence']:
             self.handle_divergence_detection(symbol_with_market, market_code, price_data)
+
+        if detections['confirmed_reversal']:
+            self.handle_confirmed_reversal_detection(symbol_with_market, market_code, price_data)
 
     def filter_data_by_retention(self, sorted_data: List[Dict], market_code: str) -> List[Dict]:
         """
@@ -608,6 +633,27 @@ class StockDownloader:
                 f"Low: {divergence_detection['low_price']} on {divergence_detection['low_date']}"
             )
             self.storage.save_divergence_detection(divergence_detection)
+
+    def handle_confirmed_reversal_detection(self, symbol_with_market: str, market_code: str, price_data: List[Dict]):
+        """
+        Handle confirmed-reversal detection and saving
+
+        Args:
+            symbol_with_market: Symbol with market code
+            market_code: Market code
+            price_data: List of price records
+        """
+        confirmed_reversal_detection = self.confirmed_reversal_detector.check_confirmed_reversal_detection(
+            symbol_with_market, market_code, price_data
+        )
+
+        if confirmed_reversal_detection:
+            logger.info(
+                f"Confirmed reversal detected: {symbol_with_market} - "
+                f"Score: {confirmed_reversal_detection['confirmed_reversal_score']} - "
+                f"Bounce: {confirmed_reversal_detection['bounce_pct']}% off low {confirmed_reversal_detection['low_price']}"
+            )
+            self.storage.save_confirmed_reversal_detection(confirmed_reversal_detection)
 
     def _merge_price_and_ema_data(self, price_data: List[Dict], moving_averages: List[Dict] = None) -> List[Dict]:
         """

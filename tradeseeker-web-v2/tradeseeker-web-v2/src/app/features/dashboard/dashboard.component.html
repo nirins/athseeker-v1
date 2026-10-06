@@ -50,7 +50,7 @@
 
   <div *ngIf="isLoading && stockDataArray.length === 0" class="loading-container">
     <app-loading-spinner></app-loading-spinner>
-    <p>Loading {{ selectedStrategy === 'golden-cross' ? 'golden cross' : selectedStrategy === 'death-cross' ? 'death cross' : selectedStrategy === 'near-ath' ? 'near ATH' : selectedStrategy === 'hype' ? 'hype' : selectedStrategy === 'divergence' ? 'divergence' : 'all-time high' }} data...</p>
+    <p>Loading {{ selectedStrategy === 'golden-cross' ? 'golden cross' : selectedStrategy === 'death-cross' ? 'death cross' : selectedStrategy === 'near-ath' ? 'near ATH' : selectedStrategy === 'hype' ? 'hype' : selectedStrategy === 'divergence' ? 'divergence' : selectedStrategy === 'confirmed-reversal' ? 'confirmed reversal' : 'all-time high' }} data...</p>
   </div>
 
   <div *ngIf="error" class="error-container">
@@ -68,7 +68,7 @@
   </div>
 
   <div *ngIf="!isLoading && !error && stockDataArray.length === 0 && allSymbols.length === 0" class="empty-state">
-    <p>No {{ selectedStrategy === 'golden-cross' ? 'golden cross' : selectedStrategy === 'death-cross' ? 'death cross' : selectedStrategy === 'near-ath' ? 'near ATH' : selectedStrategy === 'hype' ? 'hype' : selectedStrategy === 'divergence' ? 'divergence' : 'all-time high' }} signals found for {{ selectedMarket }} market.</p>
+    <p>No {{ selectedStrategy === 'golden-cross' ? 'golden cross' : selectedStrategy === 'death-cross' ? 'death cross' : selectedStrategy === 'near-ath' ? 'near ATH' : selectedStrategy === 'hype' ? 'hype' : selectedStrategy === 'divergence' ? 'divergence' : selectedStrategy === 'confirmed-reversal' ? 'confirmed reversal' : 'all-time high' }} signals found for {{ selectedMarket }} market.</p>
     <button (click)="onRefresh()" class="refresh-button">Refresh</button>
   </div>
 

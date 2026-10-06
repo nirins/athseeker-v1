@@ -126,6 +126,35 @@ export interface DivergenceStock {
 }
 
 /**
+ * Response from confirmed reversal stocks API endpoint
+ */
+export interface ConfirmedReversalResponse {
+  data: ConfirmedReversalStock[];
+}
+
+/**
+ * Individual confirmed-reversal stock data — a bullish divergence where
+ * price has already bounced meaningfully off the swing low
+ */
+export interface ConfirmedReversalStock {
+  symbol: string;
+  detection_date: string;
+  current_price: number;
+  low_price: number;
+  low_date: string;
+  prior_low_price: number;
+  prior_low_date: string;
+  rsi_at_low: number;
+  prior_rsi_at_low: number;
+  bounce_pct: number;
+  confirmed_reversal_score: number;
+  days_since_low: number;
+  market_code: string;
+  detected_at: string;
+  ttl: number;
+}
+
+/**
  * Response wrapper for stock data API endpoint
  */
 export interface StockDataResponse {

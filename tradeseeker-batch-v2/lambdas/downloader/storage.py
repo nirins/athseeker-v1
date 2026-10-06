@@ -288,3 +288,30 @@ class StorageManager:
         except Exception as e:
             logger.error(f"Error saving divergence detection for {detection['symbol']}: {str(e)}")
             # Don't raise - this is not critical
+
+    def save_confirmed_reversal_detection(self, detection: Dict):
+        """
+        Save confirmed-reversal detection record to DynamoDB (one record per symbol, overwrites existing)
+
+        Args:
+            detection: Confirmed reversal detection record dictionary
+        """
+        try:
+            table_name = f"ts-batch-v2-{self.environment}-confirmed-reversal"
+            table = self.dynamodb.Table(table_name)
+
+            logger.info(f"Saving confirmed reversal detection with fields: {list(detection.keys())}")
+
+            # Convert float values to Decimal for DynamoDB
+            detection_record = {
+                k: Decimal(str(v)) if isinstance(v, float) else v
+                for k, v in detection.items()
+            }
+
+            # Save confirmed reversal record (will overwrite existing record with same symbol)
+            table.put_item(Item=detection_record)
+            logger.info(f"Confirmed reversal detection saved: {detection['symbol']} - score {detection['confirmed_reversal_score']}")
+
+        except Exception as e:
+            logger.error(f"Error saving confirmed reversal detection for {detection['symbol']}: {str(e)}")
+            # Don't raise - this is not critical

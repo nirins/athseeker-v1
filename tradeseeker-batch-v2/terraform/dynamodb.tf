@@ -411,3 +411,64 @@ resource "aws_dynamodb_table" "divergence_detections" {
     }
   )
 }
+
+# DynamoDB table for confirmed-reversal detection records ("CR" — a bullish
+# divergence where price has also already bounced meaningfully off the low)
+resource "aws_dynamodb_table" "confirmed_reversal_detections" {
+  name         = "${local.name_prefix}-confirmed-reversal"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "symbol"
+
+  attribute {
+    name = "symbol"
+    type = "S"
+  }
+
+  attribute {
+    name = "market_code"
+    type = "S"
+  }
+
+  attribute {
+    name = "confirmed_reversal_score"
+    type = "N"
+  }
+
+  # GSI for querying by market (all confirmed reversals in specific market)
+  global_secondary_index {
+    name            = "market_code-index"
+    hash_key        = "market_code"
+    projection_type = "ALL"
+  }
+
+  # GSI for querying by confirmed reversal score (ordered by score descending)
+  global_secondary_index {
+    name            = "confirmed_reversal_score-index"
+    hash_key        = "market_code"
+    range_key       = "confirmed_reversal_score"
+    projection_type = "ALL"
+  }
+
+  # TTL to automatically delete stale records (records overwritten every run)
+  ttl {
+    attribute_name = "ttl"
+    enabled        = true
+  }
+
+  # Enable point-in-time recovery
+  point_in_time_recovery {
+    enabled = true
+  }
+
+  # Enable encryption at rest
+  server_side_encryption {
+    enabled = true
+  }
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "${local.name_prefix}-confirmed-reversal"
+    }
+  )
+}
