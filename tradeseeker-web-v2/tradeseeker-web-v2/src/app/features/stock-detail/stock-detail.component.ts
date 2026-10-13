@@ -422,8 +422,45 @@ export class StockDetailComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * RSI(14) with Wilder's smoothing, computed from closing prices already
+   * loaded for the charts — same formula as the batch pipeline's
+   * divergence detector, just run client-side so no new endpoint is needed.
+   */
+  private calculateRsi(prices: { close: number }[], period = 14): number | null {
+    if (prices.length < period + 1) {
+      return null;
+    }
+
+    const closes = prices.map(p => p.close);
+    let avgGain = 0;
+    let avgLoss = 0;
+
+    for (let i = 1; i <= period; i++) {
+      const delta = closes[i] - closes[i - 1];
+      avgGain += Math.max(delta, 0);
+      avgLoss += Math.max(-delta, 0);
+    }
+    avgGain /= period;
+    avgLoss /= period;
+
+    for (let i = period + 1; i < closes.length; i++) {
+      const delta = closes[i] - closes[i - 1];
+      const gain = Math.max(delta, 0);
+      const loss = Math.max(-delta, 0);
+      avgGain = (avgGain * (period - 1) + gain) / period;
+      avgLoss = (avgLoss * (period - 1) + loss) / period;
+    }
+
+    if (avgLoss === 0) {
+      return 100;
+    }
+    const rs = avgGain / avgLoss;
+    return 100 - 100 / (1 + rs);
+  }
+
+  /**
    * Compute real numeric context (price, % change, 52-week range, EMA
-   * position, volume vs average) from already-loaded chart data, so the
+   * position, RSI, volume vs average) from already-loaded chart data, so the
    * model has concrete numbers to reference instead of guessing from
    * pixels — this is what actually fixes "every stock sounds the same".
    * Uses the longest-range series as the source of truth: every shorter
@@ -474,6 +511,8 @@ export class StockDetailComponent implements OnInit, OnDestroy {
     const ema50 = emaAt(longest.emas?.ema50);
     const ema200 = emaAt(longest.emas?.ema200);
 
+    const rsi14 = this.calculateRsi(prices);
+
     const fmt = (n: number | null, digits = 2): string => n === null ? 'n/a' : n.toFixed(digits);
 
     const emaPosition = ema50 !== null && ema200 !== null
@@ -489,11 +528,16 @@ export class StockDetailComponent implements OnInit, OnDestroy {
         ? `Latest volume is ${fmt(volumeVsAvgPct)}% above its 20-day average`
         : `Latest volume is ${fmt(Math.abs(volumeVsAvgPct))}% below its 20-day average`;
 
+    const rsiLine = rsi14 === null
+      ? 'RSI(14): n/a'
+      : `RSI(14): ${fmt(rsi14)}${rsi14 >= 70 ? ' (overbought territory)' : rsi14 <= 30 ? ' (oversold territory)' : ''}`;
+
     return [
       `Current price: ${fmt(currentPrice)} as of ${last.date}`,
       `Change: ${fmt(change1m)}% (1 month), ${fmt(change3m)}% (3 months), ${fmt(change1y)}% (1 year)`,
       `52-week range: ${fmt(low52w)} to ${fmt(high52w)}`,
       `50-day EMA: ${fmt(ema50)}, 200-day EMA: ${fmt(ema200)} — ${emaPosition}`,
+      rsiLine,
       volumeLine
     ].join('\n');
   }
