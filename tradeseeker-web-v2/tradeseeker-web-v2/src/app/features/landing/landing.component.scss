@@ -416,10 +416,19 @@ h2 {
 .mission-statement {
   font-size: 2rem;
   font-weight: 500;
-  margin: 0 0 3rem 0;
+  margin: 0 0 1.25rem 0;
   opacity: 0.95;
   letter-spacing: -0.01em;
   line-height: 1.4;
+}
+
+.mission-subhead {
+  font-size: 1.25rem;
+  font-weight: 400;
+  margin: 0 auto 3rem auto;
+  max-width: 640px;
+  opacity: 0.9;
+  line-height: 1.5;
 }
 
 .final-cta { margin-top: 2rem; }
@@ -476,5 +485,6 @@ h2 {
 
   .philosophy-grid { grid-template-columns: 1fr; }
   .mission-statement { font-size: 1.5rem; }
+  .mission-subhead { font-size: 1.05rem; }
   section:not(.hero) { padding: 80px 0; }
 }
