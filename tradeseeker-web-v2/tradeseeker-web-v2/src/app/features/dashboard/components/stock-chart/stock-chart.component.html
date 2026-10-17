@@ -18,6 +18,7 @@
               title="Click to open {{ currentStockData.symbol }} details in new tab">
             {{ currentStockData.symbol }}
           </h3>
+          <span class="strategy-tag" *ngIf="strategyLabel">{{ strategyLabel }}</span>
           <span class="beauty-score" *ngIf="beautyScore !== null">{{ displayScore }}</span>
           <button
             class="watchlist-btn"

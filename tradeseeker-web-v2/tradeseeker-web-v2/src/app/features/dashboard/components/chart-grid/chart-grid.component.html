@@ -6,6 +6,7 @@
     [chartType]="chartType"
     [isLabelMode]="isLabelMode"
     [beautyScore]="beautyScoreMap.get(stock.symbol) ?? null"
+    [strategyLabel]="strategyLabelMap.get(stock.symbol) ?? null"
     (gradeSelectionRequested)="onGradeSelectionRequested($event)">
   </app-stock-chart>
 </div>

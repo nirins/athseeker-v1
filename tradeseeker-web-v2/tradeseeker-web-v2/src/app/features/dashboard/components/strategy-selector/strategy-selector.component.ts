@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-export type TradingStrategy = 'golden-cross' | 'death-cross' | 'ath' | 'near-ath' | 'hype' | 'divergence' | 'confirmed-reversal';
+export type TradingStrategy = 'golden-cross' | 'death-cross' | 'ath' | 'near-ath' | 'hype' | 'divergence' | 'confirmed-reversal' | 'showcase';
 
 interface StrategyOption {
   value: TradingStrategy;
@@ -22,6 +22,7 @@ export class StrategySelectorComponent {
   // 'death-cross' is intentionally hidden from the UI (still a valid
   // TradingStrategy / API route if selected another way, e.g. sessionStorage).
   strategies: StrategyOption[] = [
+    { value: 'showcase', label: 'Showcase' },
     { value: 'ath', label: 'ATH' },
     { value: 'near-ath', label: 'Near' },
     { value: 'golden-cross', label: 'Golden' },

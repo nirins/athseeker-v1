@@ -101,6 +101,23 @@ export interface SpeculativeStock {
 }
 
 /**
+ * A single strategy's result normalized into a common shape for the
+ * Showcase page — top stocks across every strategy ranked on one list.
+ */
+export interface ShowcaseStock {
+  symbol: string;
+  market_code: string;
+  strategy: 'ath' | 'near-ath' | 'golden-cross' | 'hype' | 'divergence' | 'confirmed-reversal';
+  strategyLabel: string;
+  score: number;
+  grade?: string;
+}
+
+export interface ShowcaseResponse {
+  data: ShowcaseStock[];
+}
+
+/**
  * Response from divergence stocks API endpoint
  */
 export interface DivergenceResponse {

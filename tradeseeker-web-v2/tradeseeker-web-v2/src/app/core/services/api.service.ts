@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, forkJoin, from, throwError, of } from 'rxjs';
 import { map, catchError, retry, mergeMap, toArray, filter, tap } from 'rxjs/operators';
-import { GoldenCrossResponse, StockData, StockDataResponse, RawStockData, MovingAveragePoint, ATHResponse, NearATHResponse, SpeculativeResponse, DivergenceResponse, ConfirmedReversalResponse } from '../models';
+import { GoldenCrossResponse, StockData, StockDataResponse, RawStockData, MovingAveragePoint, ATHResponse, NearATHResponse, SpeculativeResponse, DivergenceResponse, ConfirmedReversalResponse, ShowcaseResponse, ShowcaseStock } from '../models';
 import { environment } from '../../../environments/environment';
 
 @Injectable({
@@ -138,6 +138,71 @@ export class ApiService {
         return this.getGoldenCrosses(market, limit, offset);
       }
     }
+
+  /**
+   * Showcase: top stocks across every strategy on one page, ranked by each
+   * strategy's own score and capped at `maxTotal` overall. Each strategy
+   * stores its score under a different field name (beauty_score,
+   * speculative_score, divergence_score, confirmed_reversal_score) — this
+   * normalizes them into one `score` field so they can be ranked together.
+   *
+   * Note: "hype" (speculative) is a risk/caution score, not an opportunity
+   * score like the others — a high number there means more caution
+   * warranted, not a better setup. It's still included per strategy choice,
+   * but ranks on the same numeric scale as the rest, which conflates two
+   * different meanings of "high score". Tag it in the UI if that distinction
+   * matters more than this v1 handles.
+   */
+  getShowcaseStocks(market: string, maxTotal: number = 12, perStrategyLimit: number = 30): Observable<ShowcaseResponse> {
+    const STRATEGIES: Array<{ key: ShowcaseStock['strategy']; label: string; scoreField: string }> = [
+      { key: 'ath', label: 'ATH', scoreField: 'beauty_score' },
+      { key: 'near-ath', label: 'Near ATH', scoreField: 'beauty_score' },
+      { key: 'golden-cross', label: 'Golden Cross', scoreField: 'beauty_score' },
+      { key: 'divergence', label: 'Divergence', scoreField: 'divergence_score' },
+      { key: 'confirmed-reversal', label: 'Confirmed Reversal', scoreField: 'confirmed_reversal_score' },
+      { key: 'hype', label: 'Hype', scoreField: 'speculative_score' },
+    ];
+
+    const requests = STRATEGIES.map(({ key, label, scoreField }) =>
+      this.getStrategyStocks(key, market, perStrategyLimit).pipe(
+        map((response: any): ShowcaseStock[] => {
+          const items = response?.data ?? [];
+          return items
+            .filter((item: any) => item[scoreField] != null)
+            .map((item: any): ShowcaseStock => ({
+              symbol: item.symbol,
+              market_code: item.market_code,
+              strategy: key,
+              strategyLabel: label,
+              score: item[scoreField],
+              grade: item.grade,
+            }));
+        }),
+        catchError(() => of([] as ShowcaseStock[]))
+      )
+    );
+
+    return forkJoin(requests).pipe(
+      map((resultsPerStrategy: ShowcaseStock[][]) => {
+        const all = resultsPerStrategy.flat();
+
+        // Dedupe by symbol, keeping whichever strategy scored it highest
+        const bestBySymbol = new Map<string, ShowcaseStock>();
+        for (const item of all) {
+          const existing = bestBySymbol.get(item.symbol);
+          if (!existing || item.score > existing.score) {
+            bestBySymbol.set(item.symbol, item);
+          }
+        }
+
+        const ranked = Array.from(bestBySymbol.values())
+          .sort((a, b) => b.score - a.score)
+          .slice(0, maxTotal);
+
+        return { data: ranked };
+      })
+    );
+  }
 
   getNearATHStocks(market?: string, limit?: number, offset?: number): Observable<NearATHResponse> {
     const fetchOne = (marketCode?: string): Observable<NearATHResponse> => {

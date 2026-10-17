@@ -79,6 +79,18 @@
         white-space: nowrap;
       }
 
+      .strategy-tag {
+        font-size: 0.65rem;
+        font-weight: 600;
+        color: #1e293b;
+        background: #e2e8f0;
+        border-radius: 3px;
+        padding: 0.1rem 0.3rem;
+        white-space: nowrap;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+      }
+
       .watchlist-btn {
         background: none;
         border: none;

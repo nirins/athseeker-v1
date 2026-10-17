@@ -29,6 +29,7 @@ export class StockChartComponent implements OnInit, OnChanges, OnDestroy, AfterV
   @Input() isLabelMode: boolean = false;
   @Input() beautyScore: number | null = null;
   @Input() grade: string | null = null;
+  @Input() strategyLabel: string | null = null;
 
   get displayScore(): string | null {
     if (this.beautyScore === null) return null;

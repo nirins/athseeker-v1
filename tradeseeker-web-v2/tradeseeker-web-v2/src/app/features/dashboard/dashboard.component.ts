@@ -42,6 +42,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   goldenCrosses: string[] = [];
   stockDataArray: StockData[] = [];
   beautyScoreMap: Map<string, number> = new Map();
+  strategyLabelMap: Map<string, string> = new Map();
   isLoading = false;
   error: string | null = null;
   
@@ -166,6 +167,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.currentOffset = 0;
       this.allSymbols = [];
       this.beautyScoreMap = new Map();
+      this.strategyLabelMap = new Map();
       this.hasMoreData = false;
 
       // Clear existing data to show loading state
@@ -177,6 +179,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
    * Load a page of stocks with fallback to client-side pagination
    */
   private loadStockPageWithFallback(): void {
+    // Showcase: a single aggregated page, no further pagination
+    if (this.selectedStrategy === 'showcase') {
+      this.loadShowcase();
+      return;
+    }
+
     // For ATH/Near-ATH on load more, allSymbols is already populated — skip API call
     if ((this.selectedStrategy === 'ath' || this.selectedStrategy === 'near-ath' || this.selectedStrategy === 'hype' || this.selectedStrategy === 'divergence' || this.selectedStrategy === 'confirmed-reversal') && this.currentOffset > 0) {
       const startIndex = this.currentOffset;
@@ -324,6 +332,40 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   /**
+   * Showcase: top stocks across every strategy, ranked by score, capped at
+   * 12 total — a single aggregated request, no pagination.
+   */
+  private loadShowcase(): void {
+    this.apiService.getShowcaseStocks(this.selectedMarket)
+      .pipe(
+        takeUntil(this.destroy$),
+        catchError(error => {
+          this.error = this.getErrorMessage(error);
+          this.isLoading = false;
+          this.isLoadingMore = false;
+          this.refreshInProgress = false;
+          return of({ data: [] });
+        })
+      )
+      .subscribe(response => {
+        const items = response?.data ?? [];
+        const symbols = items.map(item => item.symbol);
+
+        this.beautyScoreMap = new Map(items.map(item => [item.symbol, item.score]));
+        this.strategyLabelMap = new Map(items.map(item => [item.symbol, item.strategyLabel]));
+        this.goldenCrosses = symbols;
+        this.allSymbols = symbols;
+        this.hasMoreData = false;
+
+        this.fetchStockDataAsync(symbols);
+
+        this.isLoading = false;
+        this.isLoadingMore = false;
+        this.refreshInProgress = false;
+      });
+  }
+
+  /**
    * Load more stocks (next page)
    */
   loadMore(): void {
@@ -449,6 +491,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.currentOffset = 0;
       this.hasMoreData = false;
       this.beautyScoreMap = new Map();
+      this.strategyLabelMap = new Map();
 
       // Emit market change to trigger data fetch with switchMap
       // This will cancel any pending requests for the previous market
@@ -468,6 +511,34 @@ export class DashboardComponent implements OnInit, OnDestroy {
           
           // Clear existing data immediately
           this.stockDataArray = [];
+
+          if (this.selectedStrategy === 'showcase') {
+            return this.apiService.getShowcaseStocks(market).pipe(
+              switchMap(response => {
+                const items = response?.data ?? [];
+                const symbols = items.map(item => item.symbol);
+
+                this.beautyScoreMap = new Map(items.map(item => [item.symbol, item.score]));
+                this.strategyLabelMap = new Map(items.map(item => [item.symbol, item.strategyLabel]));
+                this.goldenCrosses = symbols;
+                this.allSymbols = symbols;
+                this.hasMoreData = false;
+
+                if (symbols.length === 0) {
+                  return of([]);
+                }
+
+                this.fetchStockDataAsync(symbols);
+                return of([]);
+              }),
+              catchError(error => {
+                this.error = this.getErrorMessage(error);
+                this.isLoading = false;
+                this.refreshInProgress = false;
+                return of([]);
+              })
+            );
+          }
 
           return this.apiService.getStrategyStocks(this.selectedStrategy, market).pipe(
             switchMap(response => {

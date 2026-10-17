@@ -16,6 +16,7 @@ export class ChartGridComponent {
   @Input() chartType: ChartType = 'candlestick';
   @Input() isLabelMode: boolean = false;
   @Input() beautyScoreMap: Map<string, number> = new Map();
+  @Input() strategyLabelMap: Map<string, string> = new Map();
   @Output() gradeSelectionRequested = new EventEmitter<{symbol: string, stockData: StockData}>();
 
   onGradeSelectionRequested(event: {symbol: string, stockData: StockData}): void {
