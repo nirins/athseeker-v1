@@ -37,7 +37,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   selectedMarket: string = 'BK';
   selectedDisplayMode: ChartDisplayMode = 'both';
   selectedChartType: ChartType = 'candlestick';
-  selectedStrategy: TradingStrategy = 'ath';
+  selectedStrategy: TradingStrategy = 'showcase';
   
   goldenCrosses: string[] = [];
   stockDataArray: StockData[] = [];
@@ -101,7 +101,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       // Chart type always defaults to candlestick (selector is hidden)
       sessionStorage.removeItem('chartType');
 
-      // Strategy always defaults to ATH
+      // Strategy always defaults to Showcase
       sessionStorage.removeItem('tradingStrategy');
     }
 

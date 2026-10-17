@@ -16,7 +16,7 @@ interface StrategyOption {
   styleUrls: ['./strategy-selector.component.scss']
 })
 export class StrategySelectorComponent {
-  @Input() selectedStrategy: TradingStrategy = 'ath';
+  @Input() selectedStrategy: TradingStrategy = 'showcase';
   @Output() strategyChange = new EventEmitter<TradingStrategy>();
 
   // 'death-cross' is intentionally hidden from the UI (still a valid

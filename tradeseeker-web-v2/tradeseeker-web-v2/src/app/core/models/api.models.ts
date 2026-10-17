@@ -109,7 +109,18 @@ export interface ShowcaseStock {
   market_code: string;
   strategy: 'ath' | 'near-ath' | 'golden-cross' | 'hype' | 'divergence' | 'confirmed-reversal';
   strategyLabel: string;
+  /** The stock's real score, in that strategy's own native scale — shown on the card. */
   score: number;
+  /**
+   * Percentile (0-100) of `score` within its strategy's own pool for this
+   * request. Used only to rank/select across strategies, since each
+   * strategy's score formula has a different realistic range (e.g. a
+   * Divergence score right at its entry gate commonly sits in the 20s-40s,
+   * while a strong ATH breakout commonly sits in the 60s-90s) — comparing
+   * raw scores directly lets whichever strategy scores highest by nature
+   * crowd out the others. Not shown on the card; `score` is.
+   */
+  rankScore: number;
   grade?: string;
 }
 

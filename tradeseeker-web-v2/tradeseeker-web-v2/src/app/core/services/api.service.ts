@@ -140,20 +140,34 @@ export class ApiService {
     }
 
   /**
-   * Showcase: top stocks across every strategy on one page, ranked by each
-   * strategy's own score and capped at `maxTotal` overall. Each strategy
-   * stores its score under a different field name (beauty_score,
-   * speculative_score, divergence_score, confirmed_reversal_score) — this
-   * normalizes them into one `score` field so they can be ranked together.
+   * Showcase: top stocks across every strategy on one page, capped at
+   * `maxTotal` overall. Each strategy stores its score under a different
+   * field name (beauty_score, speculative_score, divergence_score,
+   * confirmed_reversal_score) with a different realistic range — a
+   * Divergence score sitting right at its entry gate commonly lands in the
+   * 20s-40s, while a strong ATH breakout commonly lands in the 60s-90s.
+   * Ranking directly on those raw numbers lets whichever strategy scores
+   * highest by nature crowd out every other strategy's results.
+   *
+   * To fix that, each stock is ranked by its *percentile within its own
+   * strategy's pool* (rankScore, 0-100) rather than its raw score — "this is
+   * one of my strategy's best results today" is comparable across
+   * strategies even when the underlying formulas aren't. The real score
+   * (`score`) is still what's shown on the card.
    *
    * Note: "hype" (speculative) is a risk/caution score, not an opportunity
    * score like the others — a high number there means more caution
-   * warranted, not a better setup. It's still included per strategy choice,
-   * but ranks on the same numeric scale as the rest, which conflates two
-   * different meanings of "high score". Tag it in the UI if that distinction
-   * matters more than this v1 handles.
+   * warranted, not a better setup. It's still included per strategy choice;
+   * percentile ranking means its *most unusual* (riskiest) stocks surface,
+   * same as the others' best stocks, rather than this being fixed by the
+   * normalization itself.
+   *
+   * `perStrategyCap` additionally caps how many of any one strategy's own
+   * (already percentile-ranked) results are even eligible for the final
+   * list — so no single strategy can fill all `maxTotal` slots just because
+   * it happened to have more/stronger signals than the others that day.
    */
-  getShowcaseStocks(market: string, maxTotal: number = 12, perStrategyLimit: number = 30): Observable<ShowcaseResponse> {
+  getShowcaseStocks(market: string, maxTotal: number = 12, perStrategyLimit: number = 30, perStrategyCap: number = 3): Observable<ShowcaseResponse> {
     const STRATEGIES: Array<{ key: ShowcaseStock['strategy']; label: string; scoreField: string }> = [
       { key: 'ath', label: 'ATH', scoreField: 'beauty_score' },
       { key: 'near-ath', label: 'Near ATH', scoreField: 'beauty_score' },
@@ -166,17 +180,32 @@ export class ApiService {
     const requests = STRATEGIES.map(({ key, label, scoreField }) =>
       this.getStrategyStocks(key, market, perStrategyLimit).pipe(
         map((response: any): ShowcaseStock[] => {
-          const items = response?.data ?? [];
-          return items
-            .filter((item: any) => item[scoreField] != null)
-            .map((item: any): ShowcaseStock => ({
-              symbol: item.symbol,
-              market_code: item.market_code,
-              strategy: key,
-              strategyLabel: label,
-              score: item[scoreField],
-              grade: item.grade,
-            }));
+          const items = (response?.data ?? []).filter((item: any) => item[scoreField] != null);
+
+          // Percentile rank within this strategy's own pool: lowest score
+          // in the pool -> 0, highest -> 100. A pool of 1 item ranks at 100
+          // (nothing to compare against, so don't penalize it).
+          const sortedAsc = [...items].sort((a: any, b: any) => a[scoreField] - b[scoreField]);
+          const rankByScore = new Map<number, number>();
+          sortedAsc.forEach((item: any, i: number) => {
+            rankByScore.set(item[scoreField], sortedAsc.length > 1 ? (i / (sortedAsc.length - 1)) * 100 : 100);
+          });
+
+          const ranked: ShowcaseStock[] = items.map((item: any): ShowcaseStock => ({
+            symbol: item.symbol,
+            market_code: item.market_code,
+            strategy: key,
+            strategyLabel: label,
+            score: item[scoreField],
+            rankScore: rankByScore.get(item[scoreField]) ?? 0,
+            grade: item.grade,
+          }));
+
+          // Cap this strategy's own contribution before it ever competes
+          // for a final slot, so no single strategy can crowd out the rest.
+          return ranked
+            .sort((a, b) => b.rankScore - a.rankScore)
+            .slice(0, perStrategyCap);
         }),
         catchError(() => of([] as ShowcaseStock[]))
       )
@@ -186,18 +215,26 @@ export class ApiService {
       map((resultsPerStrategy: ShowcaseStock[][]) => {
         const all = resultsPerStrategy.flat();
 
-        // Dedupe by symbol, keeping whichever strategy scored it highest
+        // Dedupe by symbol, keeping whichever strategy ranks it highest
+        // within its own pool
         const bestBySymbol = new Map<string, ShowcaseStock>();
         for (const item of all) {
           const existing = bestBySymbol.get(item.symbol);
-          if (!existing || item.score > existing.score) {
+          if (!existing || item.rankScore > existing.rankScore) {
             bestBySymbol.set(item.symbol, item);
           }
         }
 
-        const ranked = Array.from(bestBySymbol.values())
-          .sort((a, b) => b.score - a.score)
+        // Selection uses rankScore (percentile within each strategy) so no
+        // one strategy's naturally-higher-scoring formula crowds out the
+        // rest. Display order is the stock's own real score, descending —
+        // separate concerns: rankScore picks who gets a seat, score orders
+        // the room once they're in it.
+        const selected = Array.from(bestBySymbol.values())
+          .sort((a, b) => b.rankScore - a.rankScore)
           .slice(0, maxTotal);
+
+        const ranked = selected.sort((a, b) => b.score - a.score);
 
         return { data: ranked };
       })
