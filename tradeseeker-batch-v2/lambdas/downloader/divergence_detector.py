@@ -16,6 +16,62 @@ from technical_analysis import calculate_rsi_series
 logger = logging.getLogger()
 
 
+def _rsi_gap_score(rsi_2: float, rsi_1: float) -> float:
+    """
+    Score the RSI(latest low) - RSI(prior low) gap (0-100).
+    Shared with confirmed_reversal_detector.py, which carries forward the
+    same underlying divergence-strength signal.
+    """
+    return max(0.0, min(100.0, (rsi_2 - rsi_1) * 6))
+
+
+def _price_structure_score(price_2: float, price_1: float) -> float:
+    """
+    Score how meaningfully the second swing low undercut the first (0-100).
+    A deeper new low with the same RSI gap is a more convincing divergence
+    than a marginal undercut. price_2 < price_1 is guaranteed by the caller's
+    structural gate, so decline_pct is always > 0.
+    """
+    if price_1 <= 0:
+        return 50.0
+    decline_pct = (price_1 - price_2) / price_1 * 100
+    if decline_pct <= 0:
+        return 20.0
+    elif decline_pct < 2:
+        return 20 + (decline_pct / 2) * 40
+    elif decline_pct < 5:
+        return 60 + ((decline_pct - 2) / 3) * 40
+    else:
+        return 100.0
+
+
+def _recency_score(days_since_low: int) -> float:
+    """
+    Score how fresh the swing low is (0-100). Shared with
+    confirmed_reversal_detector.py. Callers already gate on
+    days_since_low <= max_days_since_low (20 by default).
+    """
+    if days_since_low <= 5:
+        return 100.0
+    elif days_since_low <= 12:
+        return 70.0
+    else:
+        return 40.0
+
+
+def _rsi_floor_score(rsi_2: float) -> float:
+    """
+    Score how oversold the latest low itself was (0-100) — lower RSI at the
+    low means a more washed-out, stronger-setup bottom.
+    """
+    if rsi_2 <= 30:
+        return 100.0
+    elif rsi_2 >= 50:
+        return 0.0
+    else:
+        return 100 - ((rsi_2 - 30) / 20) * 100
+
+
 class DivergenceDetector:
     """Handles bullish price/RSI divergence detection for all stocks"""
 
@@ -180,10 +236,23 @@ class DivergenceDetector:
             if rsi_2 >= self.max_rsi_at_low:
                 return None
 
-            divergence_score = max(0, min(100, round((rsi_2 - rsi_1) * 5)))
+            rsi_gap_score = _rsi_gap_score(rsi_2, rsi_1)
+            price_structure_score = _price_structure_score(price_2, price_1)
+            recency_score = _recency_score(days_since_low)
+            rsi_floor_score = _rsi_floor_score(rsi_2)
+
+            divergence_score = round(
+                rsi_gap_score * 0.40 +
+                price_structure_score * 0.25 +
+                recency_score * 0.20 +
+                rsi_floor_score * 0.15
+            )
+            divergence_score = max(0, min(100, divergence_score))
 
             logger.info(
-                f"Bullish divergence detected for {symbol}: score={divergence_score}, "
+                f"Bullish divergence detected for {symbol}: score={divergence_score} "
+                f"(rsi_gap={rsi_gap_score:.1f}, structure={price_structure_score:.1f}, "
+                f"recency={recency_score:.1f}, rsi_floor={rsi_floor_score:.1f}), "
                 f"low_2={price_2:.2f} ({low_2_date}, RSI={rsi_2:.1f}), "
                 f"low_1={price_1:.2f} ({low_1_date}, RSI={rsi_1:.1f})"
             )
@@ -200,6 +269,10 @@ class DivergenceDetector:
                 'rsi_at_low': round(rsi_2, 2),
                 'prior_rsi_at_low': round(rsi_1, 2),
                 'divergence_score': divergence_score,
+                'rsi_gap_score': round(rsi_gap_score, 1),
+                'price_structure_score': round(price_structure_score, 1),
+                'recency_score': round(recency_score, 1),
+                'rsi_floor_score': round(rsi_floor_score, 1),
                 'days_since_low': days_since_low,
                 'detected_at': datetime.now().isoformat(),
                 'ttl': int((datetime.now() + timedelta(days=2)).timestamp()),

@@ -66,7 +66,7 @@ class TestSpeculativeDetector:
         assert result is None
 
     def test_volume_spike_plus_volatility_triggers(self):
-        """Two independent signals (volume + volatility) should flag at score 50"""
+        """Two independent signals (volume + volatility) should flag, gated on flag count"""
         price_data = _make_baseline()
         price_data[-1]['volume'] = 5000.0  # ratio 5.0x >= 3.0 threshold
         price_data[-1]['high'] = 140.0
@@ -77,9 +77,31 @@ class TestSpeculativeDetector:
         assert result is not None
         assert result['symbol'] == 'AAPL.US'
         assert result['market_code'] == 'US'
-        assert result['speculative_score'] == 50
+        # Continuous magnitude-aware score, not the old 25-pts-per-flag: two
+        # signals firing at moderate (not maxed-out) magnitude land well
+        # below 100, but still above 0.
+        assert 0 < result['speculative_score'] < 100
+        assert result['risk_tier'] in {'Low', 'Moderate', 'High', 'Extreme'}
         assert set(result['reasons']) == {'volume_spike', 'volatility_spike'}
         assert result['volume_spike_ratio'] == 5.0
+
+    def test_magnitude_awareness_bigger_spike_scores_higher(self):
+        """A 10x volume spike should score higher than a 3.1x spike (the gap the old binary-flag formula lost)"""
+        small_spike = _make_baseline()
+        small_spike[-1]['volume'] = 3100.0  # 3.1x avg, just over the 3.0x threshold
+        small_spike[-1]['high'] = 140.0
+        small_spike[-1]['low'] = 98.0  # second signal to cross the 2-flag gate
+
+        big_spike = _make_baseline()
+        big_spike[-1]['volume'] = 10000.0  # 10x avg, well past the 6.0x cap
+        big_spike[-1]['high'] = 140.0
+        big_spike[-1]['low'] = 98.0
+
+        small_result = self.detector.check_speculative_detection('AAPL.US', 'US', small_spike)
+        big_result = self.detector.check_speculative_detection('AAPL.US', 'US', big_spike)
+
+        assert small_result is not None and big_result is not None
+        assert big_result['speculative_score'] > small_result['speculative_score']
 
     def test_red_candle_signal_from_candle_metrics(self):
         """Severe red candle (passed via candle_metrics) counts as a signal"""
@@ -106,18 +128,19 @@ class TestSpeculativeDetector:
         assert result['cumulative_return_10d_pct'] > 50.0
 
     def test_all_four_signals_score_100(self):
-        """All four signals firing together caps the score at 100"""
+        """All four signals firing well past each one's cap sums to 100"""
         price_data = _make_baseline()
-        price_data[-1]['volume'] = 5000.0  # volume_spike
-        price_data[-1]['high'] = 140.0
-        price_data[-1]['low'] = 98.0  # volatility_spike
-        price_data[-11]['close'] = 60.0  # parabolic_run_up
-        candle_metrics = {'max_red_candle_pct': -20.0}  # severe_red_candle
+        price_data[-1]['volume'] = 10000.0  # 10x avg, past the 6.0x volume cap
+        price_data[-1]['high'] = 250.0
+        price_data[-1]['low'] = 98.0  # ~155% swing, past the 60% volatility cap
+        price_data[-11]['close'] = 10.0  # ~910% run-up, past the 80% cap
+        candle_metrics = {'max_red_candle_pct': -50.0}  # past the -40% red-candle cap
 
         result = self.detector.check_speculative_detection('AAPL.US', 'US', price_data, candle_metrics)
 
         assert result is not None
         assert result['speculative_score'] == 100
+        assert result['risk_tier'] == 'Extreme'
         assert set(result['reasons']) == {
             'volume_spike', 'volatility_spike', 'parabolic_run_up', 'severe_red_candle'
         }

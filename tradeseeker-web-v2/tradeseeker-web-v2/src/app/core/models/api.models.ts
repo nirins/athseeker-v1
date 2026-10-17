@@ -24,6 +24,8 @@ export interface GoldenCrossStock {
   green_days_30d_pct: number;
   max_red_candle_30d_pct: number;
   ttl: number;
+  beauty_score?: number;
+  grade?: string;
 }
 
 /**

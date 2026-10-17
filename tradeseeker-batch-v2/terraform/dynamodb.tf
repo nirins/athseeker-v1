@@ -77,6 +77,11 @@ resource "aws_dynamodb_table" "golden_crosses" {
     type = "S"
   }
 
+  attribute {
+    name = "beauty_score"
+    type = "N"
+  }
+
   # GSI for querying by date (all symbols with golden cross on specific date)
   global_secondary_index {
     name            = "cross_date-index"
@@ -89,6 +94,15 @@ resource "aws_dynamodb_table" "golden_crosses" {
     name            = "market_code-cross_date-index"
     hash_key        = "market_code"
     range_key       = "cross_date"
+    projection_type = "ALL"
+  }
+
+  # GSI for querying by beauty score (ordered by beauty score descending),
+  # same convention as ath_detections' beauty_score-index
+  global_secondary_index {
+    name            = "market_code-beauty_score-index"
+    hash_key        = "market_code"
+    range_key       = "beauty_score"
     projection_type = "ALL"
   }
 
@@ -138,6 +152,11 @@ resource "aws_dynamodb_table" "death_crosses" {
     type = "S"
   }
 
+  attribute {
+    name = "beauty_score"
+    type = "N"
+  }
+
   # GSI for querying by date (all symbols with death cross on specific date)
   global_secondary_index {
     name            = "cross_date-index"
@@ -150,6 +169,15 @@ resource "aws_dynamodb_table" "death_crosses" {
     name            = "market_code-cross_date-index"
     hash_key        = "market_code"
     range_key       = "cross_date"
+    projection_type = "ALL"
+  }
+
+  # GSI for querying by beauty score (ordered by beauty score descending),
+  # same convention as ath_detections' beauty_score-index
+  global_secondary_index {
+    name            = "market_code-beauty_score-index"
+    hash_key        = "market_code"
+    range_key       = "beauty_score"
     projection_type = "ALL"
   }
 

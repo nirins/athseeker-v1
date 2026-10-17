@@ -213,10 +213,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
           const symbols = response.data.map(item => item.symbol);
           
           // Build beauty score map for ATH/near-ATH
-          if (this.selectedStrategy === 'ath' || this.selectedStrategy === 'near-ath' || this.selectedStrategy === 'hype' || this.selectedStrategy === 'divergence' || this.selectedStrategy === 'confirmed-reversal') {
+          if (this.selectedStrategy === 'ath' || this.selectedStrategy === 'near-ath' || this.selectedStrategy === 'hype' || this.selectedStrategy === 'divergence' || this.selectedStrategy === 'confirmed-reversal' || this.selectedStrategy === 'golden-cross') {
             response.data.forEach((item: any) => {
-              if (item.beauty_score != null) {
-                this.beautyScoreMap.set(item.symbol, item.beauty_score);
+              const score = this.getScoreForStrategy(item);
+              if (score != null) {
+                this.beautyScoreMap.set(item.symbol, score);
               }
             });
           }
@@ -410,6 +411,27 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Each strategy stores its score under its own field name
+   * (beauty_score for ATH/near-ATH/golden-cross, speculative_score for
+   * "hype", divergence_score, confirmed_reversal_score) rather than a
+   * shared "beauty_score" key. This picks the right one per strategy so
+   * beautyScoreMap gets populated for every strategy, not just the ones
+   * that happen to literally use the name "beauty_score".
+   */
+  private getScoreForStrategy(item: any): number | null {
+    switch (this.selectedStrategy) {
+      case 'hype':
+        return item.speculative_score ?? null;
+      case 'divergence':
+        return item.divergence_score ?? null;
+      case 'confirmed-reversal':
+        return item.confirmed_reversal_score ?? null;
+      default:
+        return item.beauty_score ?? null;
+    }
+  }
+
   onMarketChange(market: string): void {
       if (market === this.selectedMarket) {
         return;
@@ -466,8 +488,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
               // Build beauty score map
               response.data.forEach((item: any) => {
-                if (item.beauty_score != null) {
-                  this.beautyScoreMap.set(item.symbol, item.beauty_score);
+                const score = this.getScoreForStrategy(item);
+                if (score != null) {
+                  this.beautyScoreMap.set(item.symbol, score);
                 }
               });
 

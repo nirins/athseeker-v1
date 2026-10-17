@@ -376,7 +376,7 @@ class StockDownloader:
             detections: Detection results
         """
         if detections['cross']:
-            self.handle_cross_signals(symbol_with_market, market_code, moving_averages, candle_metrics)
+            self.handle_cross_signals(symbol_with_market, market_code, moving_averages, candle_metrics, price_data)
 
         if detections['ath']:
             self.handle_ath_detection(symbol_with_market, market_code, price_data, moving_averages)
@@ -502,28 +502,41 @@ class StockDownloader:
         
         return near_ath_detection is not None
     
-    def handle_cross_signals(self, symbol_with_market: str, market_code: str, moving_averages: List[Dict], candle_metrics: Dict):
+    def handle_cross_signals(self, symbol_with_market: str, market_code: str, moving_averages: List[Dict],
+                              candle_metrics: Dict, price_data: List[Dict] = None):
         """
         Handle cross signal detection and saving
-        
+
         Args:
             symbol_with_market: Symbol with market code
             market_code: Market code
             moving_averages: List of moving average records
             candle_metrics: Candle metrics
+            price_data: List of price records, used (merged with moving_averages)
+                to calculate the cross beauty score
         """
         # Detect cross signals
         cross_info = self.cross_detector.detect_golden_cross(moving_averages)
-        
+
         if not cross_info:
             return
-        
+
         cross_date = datetime.strptime(cross_info['date'], '%Y-%m-%d')
         days_ago = (datetime.now() - cross_date).days
-        
+
         logger.info(f"Cross detected: {cross_info['signal']} on {cross_info['date']} ({days_ago} days ago)")
-        
+
         if days_ago <= 30:
+            if price_data:
+                merged_data = self._merge_price_and_ema_data(price_data, moving_averages)
+                beauty_analysis = self.cross_detector.calculate_cross_beauty_score(merged_data, cross_info)
+                cross_info = dict(cross_info)
+                cross_info.update(beauty_analysis)
+                logger.info(
+                    f"Cross beauty score: {beauty_analysis.get('beauty_score', 'N/A')} "
+                    f"({beauty_analysis.get('grade', 'N/A')})"
+                )
+
             if cross_info['signal'] == 'GOLDEN_CROSS':
                 logger.info(f"Saving golden cross to separate table (within 30 days)")
                 self.storage.save_cross_signal(symbol_with_market, market_code, cross_info, 'golden', candle_metrics)

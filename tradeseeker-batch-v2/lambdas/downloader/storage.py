@@ -162,7 +162,24 @@ class StorageManager:
         if candle_metrics:
             item['green_days_30d_pct'] = Decimal(str(candle_metrics['green_days_pct']))
             item['max_red_candle_30d_pct'] = Decimal(str(candle_metrics['max_red_candle_pct']))
-        
+
+        # Add cross beauty score if calculated (see cross_detector.calculate_cross_beauty_score)
+        if 'beauty_score' in cross_info:
+            beauty_fields = [
+                'beauty_score', 'crossover_strength_score', 'volume_confirmation_score',
+                'momentum_continuation_score', 'trend_quality_score', 'long_term_slope_score',
+                'prior_cross_count_90d',
+            ]
+            for field in beauty_fields:
+                if field in cross_info:
+                    value = cross_info[field]
+                    item[field] = Decimal(str(value)) if isinstance(value, float) else value
+            if 'grade' in cross_info:
+                item['grade'] = cross_info['grade']
+            if 'model_name' in cross_info:
+                item['model_name'] = cross_info['model_name']
+                item['model_version'] = cross_info['model_version']
+
         try:
             table = self.dynamodb.Table(table_name)
             table.put_item(Item=item)

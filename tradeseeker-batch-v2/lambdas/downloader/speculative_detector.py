@@ -19,6 +19,34 @@ import logging
 logger = logging.getLogger()
 
 
+def _ramp(value: float, low: float, high: float, max_pts: float = 25.0) -> float:
+    """Linear 0->max_pts ramp between [low, high], clamped outside it."""
+    if value <= low:
+        return 0.0
+    if value >= high:
+        return max_pts
+    return (value - low) / (high - low) * max_pts
+
+
+def _get_risk_tier(risk_score: float) -> str:
+    """
+    Convert the numeric risk score to a caution tier.
+
+    Deliberately NOT the A-F beauty grade used elsewhere: a high speculative
+    score means more caution is warranted, not a better opportunity, so
+    reusing "Grade A" here would read as a recommendation instead of a
+    warning. See .local/design/beauty-score-remaining-strategies.md.
+    """
+    if risk_score >= 85:
+        return 'Extreme'
+    elif risk_score >= 65:
+        return 'High'
+    elif risk_score >= 50:
+        return 'Moderate'
+    else:
+        return 'Low'
+
+
 class SpeculativeDetector:
     """Handles speculative-activity detection for all stocks"""
 
@@ -126,13 +154,31 @@ class SpeculativeDetector:
             if cumulative_return_10d_pct >= self.run_up_threshold:
                 reasons.append('parabolic_run_up')
 
-            speculative_score = 25 * len(reasons)
-
-            if speculative_score < 50:
+            # Gate on flag count, same as before (2-of-4) — this decides WHICH
+            # stocks get flagged, and stays unchanged so the detected
+            # population doesn't silently shift. The continuous score below
+            # is a separate, magnitude-aware severity measure used for
+            # ranking/sorting flagged stocks, not for the gate itself.
+            if len(reasons) < 2:
                 return None
 
+            # Continuous 0-25-per-signal risk score: a 3.1x volume spike and
+            # a 10x spike no longer score identically the way the old
+            # 25-points-per-flag formula did.
+            volume_spike_pts = _ramp(volume_spike_ratio, self.volume_spike_threshold, self.volume_spike_threshold * 2)
+            volatility_pts = _ramp(recent_volatility_pct, self.volatility_threshold, self.volatility_threshold * 2)
+            red_candle_pts = (
+                _ramp(-max_red_candle_30d_pct, -self.red_candle_threshold, -self.red_candle_threshold * 2.67)
+                if max_red_candle_30d_pct is not None else 0.0
+            )
+            run_up_pts = _ramp(cumulative_return_10d_pct, self.run_up_threshold, self.run_up_threshold * 2.67)
+
+            speculative_score = round(volume_spike_pts + volatility_pts + red_candle_pts + run_up_pts)
+            speculative_score = max(0, min(100, speculative_score))
+            risk_tier = _get_risk_tier(speculative_score)
+
             logger.info(
-                f"Speculative activity detected for {symbol}: score={speculative_score}, "
+                f"Speculative activity detected for {symbol}: risk_score={speculative_score} ({risk_tier}), "
                 f"reasons={reasons}, volume_spike_ratio={volume_spike_ratio:.2f}, "
                 f"recent_volatility_pct={recent_volatility_pct:.2f}, "
                 f"cumulative_return_10d_pct={cumulative_return_10d_pct:.2f}"
@@ -144,6 +190,7 @@ class SpeculativeDetector:
                 'detection_date': last_record['date'],
                 'current_price': round(close_now, 2),
                 'speculative_score': speculative_score,
+                'risk_tier': risk_tier,
                 'volume_spike_ratio': round(volume_spike_ratio, 2),
                 'recent_volatility_pct': round(recent_volatility_pct, 2),
                 'cumulative_return_10d_pct': round(cumulative_return_10d_pct, 2),

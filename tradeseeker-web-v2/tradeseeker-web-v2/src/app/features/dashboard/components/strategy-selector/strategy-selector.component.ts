@@ -23,7 +23,7 @@ export class StrategySelectorComponent {
   // TradingStrategy / API route if selected another way, e.g. sessionStorage).
   strategies: StrategyOption[] = [
     { value: 'ath', label: 'ATH' },
-    { value: 'near-ath', label: 'Near ATH' },
+    { value: 'near-ath', label: 'Near' },
     { value: 'golden-cross', label: 'Golden' },
     { value: 'hype', label: 'Hype' },
     { value: 'divergence', label: 'Div' },

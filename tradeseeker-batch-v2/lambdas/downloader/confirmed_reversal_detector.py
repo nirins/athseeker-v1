@@ -17,9 +17,58 @@ from typing import Dict, List, Optional
 from datetime import datetime, timedelta
 import logging
 
-from divergence_detector import DivergenceDetector
+from divergence_detector import DivergenceDetector, _rsi_gap_score, _recency_score
 
 logger = logging.getLogger()
+
+
+def _bounce_strength_score(bounce_pct: float) -> float:
+    """
+    Score how far price has already recovered off the swing low (0-100).
+    Callers gate on bounce_pct >= min_bounce_pct (5.0 by default), so the
+    ramp starts there.
+    """
+    if bounce_pct <= 5:
+        return 40.0
+    elif bounce_pct >= 15:
+        return 100.0
+    else:
+        return 40 + ((bounce_pct - 5) / 10) * 60
+
+
+def _bounce_volume_score(price_data: List[Dict], low_date: str) -> float:
+    """
+    Score volume during the bounce (low_date through the latest record)
+    against the trailing-30-trading-day average volume *before* the low —
+    confirms the bounce is real buying, not a low-volume drift up.
+    Same curve shape as original_model.py's volume score.
+    """
+    low_index = next((i for i, r in enumerate(price_data) if r['date'] == low_date), None)
+    if low_index is None or low_index < 5:
+        return 50.0
+
+    baseline_window = price_data[max(0, low_index - 30):low_index]
+    baseline_volumes = [float(r.get('volume', 0)) for r in baseline_window]
+    avg_baseline_volume = sum(baseline_volumes) / len(baseline_volumes) if baseline_volumes else 0.0
+    if avg_baseline_volume <= 0:
+        return 50.0
+
+    bounce_window = price_data[low_index:]
+    bounce_volumes = [float(r.get('volume', 0)) for r in bounce_window]
+    avg_bounce_volume = sum(bounce_volumes) / len(bounce_volumes) if bounce_volumes else 0.0
+
+    volume_ratio = avg_bounce_volume / avg_baseline_volume
+
+    if volume_ratio >= 3.0:
+        return 100.0
+    elif volume_ratio >= 2.0:
+        return 80 + (volume_ratio - 2.0) * 20
+    elif volume_ratio >= 1.5:
+        return 60 + (volume_ratio - 1.5) * 40
+    elif volume_ratio >= 1.0:
+        return 40 + (volume_ratio - 1.0) * 40
+    else:
+        return max(0.0, volume_ratio * 40)
 
 
 class ConfirmedReversalDetector:
@@ -81,10 +130,23 @@ class ConfirmedReversalDetector:
             if bounce_pct < self.min_bounce_pct:
                 return None
 
-            reversal_score = max(0, min(100, round((facts['rsi_2'] - facts['rsi_1']) * 5)))
+            bounce_strength = _bounce_strength_score(bounce_pct)
+            rsi_gap = _rsi_gap_score(facts['rsi_2'], facts['rsi_1'])
+            recency = _recency_score(facts['days_since_low'])
+            bounce_volume = _bounce_volume_score(price_data, facts['low_2_date'])
+
+            reversal_score = round(
+                bounce_strength * 0.35 +
+                rsi_gap * 0.25 +
+                recency * 0.20 +
+                bounce_volume * 0.20
+            )
+            reversal_score = max(0, min(100, reversal_score))
 
             logger.info(
-                f"Confirmed reversal detected for {symbol}: score={reversal_score}, "
+                f"Confirmed reversal detected for {symbol}: score={reversal_score} "
+                f"(bounce_strength={bounce_strength:.1f}, rsi_gap={rsi_gap:.1f}, "
+                f"recency={recency:.1f}, bounce_volume={bounce_volume:.1f}), "
                 f"bounce={bounce_pct:.1f}% off low {price_2:.2f} ({facts['low_2_date']})"
             )
 
@@ -101,6 +163,10 @@ class ConfirmedReversalDetector:
                 'prior_rsi_at_low': round(facts['rsi_1'], 2),
                 'bounce_pct': round(bounce_pct, 2),
                 'confirmed_reversal_score': reversal_score,
+                'bounce_strength_score': round(bounce_strength, 1),
+                'rsi_gap_score': round(rsi_gap, 1),
+                'recency_score': round(recency, 1),
+                'bounce_volume_score': round(bounce_volume, 1),
                 'days_since_low': facts['days_since_low'],
                 'detected_at': datetime.now().isoformat(),
                 'ttl': int((datetime.now() + timedelta(days=2)).timestamp()),
